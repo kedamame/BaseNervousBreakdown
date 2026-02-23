@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="lg6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#0052FF"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" fill="#0a0a0f" rx="12"/>
+  <polygon points="100,22 138,44 138,88 100,110 62,88 62,44" fill="url(#lg6)"/>
+  <polygon points="100,90 138,112 138,156 100,178 62,156 62,112" fill="url(#lg6)" opacity="0.7"/>
+  <text x="100" y="75" font-family="Arial, sans-serif" font-size="30" fill="white" text-anchor="middle" font-weight="bold">⬡</text>
+  <text x="100" y="150" font-family="Arial, sans-serif" font-size="16" fill="white" text-anchor="middle" font-weight="bold">BASE</text>
+</svg>

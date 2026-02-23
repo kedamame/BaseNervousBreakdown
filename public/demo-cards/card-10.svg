@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <filter id="glow10">
+      <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="200" height="200" fill="#0a0a0f" rx="12"/>
+  <polygon points="100,20 175,100 100,180 25,100" fill="#12121a" stroke="#a855f7" stroke-width="3" filter="url(#glow10)"/>
+  <polygon points="100,40 155,100 100,160 45,100" fill="none" stroke="#7e22ce" stroke-width="2"/>
+  <polygon points="100,60 135,100 100,140 65,100" fill="#a855f7" opacity="0.2" stroke="#a855f7" stroke-width="1.5" filter="url(#glow10)"/>
+  <circle cx="100" cy="100" r="8" fill="#a855f7" filter="url(#glow10)"/>
+</svg>
