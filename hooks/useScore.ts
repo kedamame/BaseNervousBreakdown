@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useWriteContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
+import { useWriteContract, usePublicClient, useChainId, useSwitchChain } from "wagmi";
+import { base } from "wagmi/chains";
 import { MEMORY_GAME_ABI, CONTRACT_ADDRESS } from "@/lib/constants";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -14,6 +15,8 @@ export function useScore() {
 
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
+  const chainId = useChainId();
+  const { switchChainAsync } = useSwitchChain();
 
   const recordScore = useCallback(
     async (stage: number, moves: number): Promise<boolean> => {
@@ -27,6 +30,11 @@ export function useScore() {
       }
 
       try {
+        // Auto-switch to Base mainnet before sending
+        if (chainId !== base.id) {
+          await switchChainAsync({ chainId: base.id });
+        }
+
         setStatus("sending");
         const hash = await writeContractAsync({
           address: CONTRACT_ADDRESS,
@@ -50,7 +58,7 @@ export function useScore() {
         return false;
       }
     },
-    [writeContractAsync, publicClient]
+    [writeContractAsync, publicClient, chainId, switchChainAsync]
   );
 
   const reset = useCallback(() => {

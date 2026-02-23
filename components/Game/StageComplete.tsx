@@ -27,8 +27,6 @@ export function StageComplete({
   const { t } = useT();
   const isRecording = scoreStatus === "sending" || scoreStatus === "confirming";
   const efficiency = totalPairs > 0 ? totalPairs / moves : 0;
-  const stars =
-    efficiency >= 0.8 ? 3 : efficiency >= 0.6 ? 2 : efficiency >= 0.4 ? 1 : 0;
   const hpPct = maxHp > 0 ? (hp / maxHp) * 100 : 0;
   const hpBarColor = hp > 60 ? "bg-purple-500" : hp > 30 ? "bg-yellow-500" : "bg-red-500";
 
@@ -41,20 +39,6 @@ export function StageComplete({
         {t.stageComplete.cleared(stage)}
       </h2>
       <p className="text-white/40 text-xs mb-6 tracking-widest uppercase">{t.stageComplete.nextStageHint}</p>
-
-      {/* Stars */}
-      <div className="flex gap-3 mb-6">
-        {[1, 2, 3].map((i) => (
-          <span
-            key={i}
-            className={`text-2xl transition-all ${
-              i <= stars ? "text-purple-400" : "text-white/15"
-            }`}
-          >
-            ★
-          </span>
-        ))}
-      </div>
 
       {/* Score details */}
       <div className="bg-surface-2 border border-white/10 p-5 w-full max-w-xs mb-6">
