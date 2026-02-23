@@ -1,6 +1,7 @@
 "use client";
 
 import { ScoreStatus } from "@/hooks/useScore";
+import { useT } from "@/lib/i18n";
 
 interface StageCompleteProps {
   stage: number;
@@ -19,6 +20,7 @@ export function StageComplete({
   recordError,
   onNextStage,
 }: StageCompleteProps) {
+  const { t } = useT();
   const isRecording = scoreStatus === "sending" || scoreStatus === "confirming";
   const efficiency = totalPairs > 0 ? totalPairs / moves : 0;
   const stars =
@@ -32,9 +34,9 @@ export function StageComplete({
       </div>
 
       <h2 className="text-3xl font-bold text-white mb-1">
-        Stage {stage} クリア！
+        {t.stageComplete.cleared(stage)}
       </h2>
-      <p className="text-gray-400 text-sm mb-6">次のステージへ進もう</p>
+      <p className="text-gray-400 text-sm mb-6">{t.stageComplete.nextStageHint}</p>
 
       {/* Stars */}
       <div className="flex gap-2 mb-6">
@@ -53,15 +55,15 @@ export function StageComplete({
       {/* Score details */}
       <div className="bg-surface-2 border border-border rounded-xl p-5 w-full max-w-xs mb-6">
         <div className="flex justify-between items-center mb-3">
-          <span className="text-gray-400 text-sm">ペア数</span>
-          <span className="text-white font-semibold">{totalPairs} ペア</span>
+          <span className="text-gray-400 text-sm">{t.stageComplete.pairsLabel}</span>
+          <span className="text-white font-semibold">{t.stageComplete.pairsValue(totalPairs)}</span>
         </div>
         <div className="flex justify-between items-center mb-3">
-          <span className="text-gray-400 text-sm">手数</span>
-          <span className="text-white font-semibold">{moves} 手</span>
+          <span className="text-gray-400 text-sm">{t.stageComplete.movesLabel}</span>
+          <span className="text-white font-semibold">{t.stageComplete.movesValue(moves)}</span>
         </div>
         <div className="flex justify-between items-center pt-3 border-t border-border">
-          <span className="text-gray-400 text-sm">効率</span>
+          <span className="text-gray-400 text-sm">{t.stageComplete.efficiency}</span>
           <span
             className={`font-semibold ${
               efficiency >= 0.8
@@ -80,24 +82,24 @@ export function StageComplete({
       {scoreStatus === "sending" ? (
         <div className="flex items-center gap-2 text-purple-400 text-sm mb-4">
           <span className="animate-spin">⟳</span>
-          <span>トランザクションを送信中...</span>
+          <span>{t.stageComplete.sendingTx}</span>
         </div>
       ) : scoreStatus === "confirming" ? (
         <div className="flex items-center gap-2 text-purple-400 text-sm mb-4">
           <span className="animate-spin">⟳</span>
-          <span>Baseで確認中...</span>
+          <span>{t.stageComplete.confirmingTx}</span>
         </div>
       ) : scoreStatus === "confirmed" ? (
         <div className="text-green-400 text-xs mb-4">
-          ✓ スコアをBaseに記録しました
+          {t.stageComplete.recorded}
         </div>
       ) : scoreStatus === "skipped" ? (
         <div className="text-gray-500 text-xs mb-4">
-          ～ オフラインモード（スコア記録なし）
+          {t.stageComplete.offline}
         </div>
       ) : recordError ? (
         <div className="text-yellow-400 text-xs mb-4 max-w-xs">
-          ⚠ スコアの記録に失敗（{recordError.slice(0, 50)}）
+          {t.stageComplete.failed}
         </div>
       ) : null}
 
@@ -108,7 +110,7 @@ export function StageComplete({
         className="w-full max-w-xs py-4 rounded-xl bg-gradient-to-r from-purple-700 to-purple-500 text-white font-bold text-lg
           hover:from-purple-600 hover:to-purple-400 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {isRecording ? "記録中..." : `Stage ${stage + 1} へ →`}
+        {isRecording ? t.stageComplete.recordingButton : t.stageComplete.nextButton(stage + 1)}
       </button>
     </div>
   );

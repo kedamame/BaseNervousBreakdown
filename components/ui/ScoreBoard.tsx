@@ -1,5 +1,7 @@
 "use client";
 
+import { useT } from "@/lib/i18n";
+
 interface ScoreBoardProps {
   stage: number;
   moves: number;
@@ -13,12 +15,13 @@ export function ScoreBoard({
   matchedPairs,
   totalPairs,
 }: ScoreBoardProps) {
+  const { t } = useT();
   return (
     <div className="w-full flex items-center justify-between px-4 py-3 bg-surface border-b border-border">
       {/* Stage */}
       <div className="flex flex-col items-center">
         <span className="text-xs text-gray-500 uppercase tracking-wider">
-          Stage
+          {t.scoreboard.stage}
         </span>
         <span className="text-xl font-bold text-purple-400">{stage}</span>
       </div>
@@ -27,7 +30,7 @@ export function ScoreBoard({
       <div className="flex flex-col items-center flex-1 mx-4">
         <div className="flex items-center gap-1 mb-1">
           <span className="text-xs text-gray-500">
-            {matchedPairs} / {totalPairs} ペア
+            {t.scoreboard.pairsOf(matchedPairs, totalPairs)}
           </span>
         </div>
         <div className="w-full h-1.5 bg-surface-2 rounded-full overflow-hidden">
@@ -43,7 +46,7 @@ export function ScoreBoard({
       {/* Moves */}
       <div className="flex flex-col items-center">
         <span className="text-xs text-gray-500 uppercase tracking-wider">
-          手数
+          {t.scoreboard.moves}
         </span>
         <span className="text-xl font-bold text-white">{moves}</span>
       </div>

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Web3Provider } from "@/components/providers/Web3Provider";
+import { I18nProvider } from "@/lib/i18n";
 
 const APP_URL = process.env.NEXT_PUBLIC_URL || "https://localhost:3000";
-const APP_NAME = "Base神経衰弱";
+const APP_NAME = "Base Memory";
 const APP_DESCRIPTION =
-  "あなたのBaseウォレットのNFT・トークンでプレイする神経衰弱ゲーム";
+  "Memory Card Game on Base — play with your NFTs & tokens";
 
 export const metadata: Metadata = {
   title: APP_NAME,
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
         title: "Play Now",
         action: {
           type: "launch_frame",
-          name: APP_NAME,
+          name: "Base神経衰弱",
           url: APP_URL,
           splashImageUrl: `${APP_URL}/og-image.png`,
           splashBackgroundColor: "#0a0a0f",
@@ -39,9 +40,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ja">
+    <html lang="en">
       <body>
-        <Web3Provider>{children}</Web3Provider>
+        <I18nProvider>
+          <Web3Provider>{children}</Web3Provider>
+        </I18nProvider>
       </body>
     </html>
   );
