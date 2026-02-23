@@ -32,13 +32,11 @@ export function useScore() {
       }
 
       try {
-        // Best-effort chain switch before submitting
+        // Switch to Base before submitting.
+        // No inner try-catch: if the switch fails (user rejects, wallet error, etc.)
+        // the error propagates to the outer catch and is shown to the user.
         if (chainId !== base.id) {
-          try {
-            await switchChainAsync({ chainId: base.id });
-          } catch {
-            // Connector may not support switchChain; continue anyway
-          }
+          await switchChainAsync({ chainId: base.id });
         }
 
         // Simulate first to catch contract reverts (cooldown, invalid args, etc.)
