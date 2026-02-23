@@ -32,13 +32,9 @@ export function Card({ card, size, onClick, disabled }: CardProps) {
           transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
         }}
       >
-        {/* Card Back */}
+        {/* Card Back — pixel checkerboard voxel texture */}
         <div
-          className={`
-            absolute inset-0 rounded-lg border-2 overflow-hidden
-            ${isMatched ? "border-purple-500" : "border-purple-800"}
-            transition-colors duration-300
-          `}
+          className="absolute inset-0 overflow-hidden border border-white/20 hover:border-white/50 transition-colors"
           style={{ backfaceVisibility: "hidden" }}
         >
           <img
@@ -50,10 +46,11 @@ export function Card({ card, size, onClick, disabled }: CardProps) {
 
         {/* Card Front */}
         <div
-          className={`
-            absolute inset-0 rounded-lg border-2 overflow-hidden
-            ${isMatched ? "border-purple-400 ring-2 ring-purple-500/50" : "border-purple-700"}
-          `}
+          className={`absolute inset-0 overflow-hidden border ${
+            isMatched
+              ? "border-purple-400 pixel-glow"
+              : "border-white/30"
+          }`}
           style={{
             backfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
@@ -61,7 +58,6 @@ export function Card({ card, size, onClick, disabled }: CardProps) {
         >
           {card.image.imageUrl.startsWith("/") ||
           card.image.imageUrl.startsWith("data:") ? (
-            // SVG / local images
             <img
               src={card.image.imageUrl}
               alt={card.image.name}
@@ -82,8 +78,8 @@ export function Card({ card, size, onClick, disabled }: CardProps) {
 
           {/* Matched overlay */}
           {isMatched && (
-            <div className="absolute inset-0 bg-purple-500/20 flex items-center justify-center">
-              <span className="text-2xl">✓</span>
+            <div className="absolute inset-0 bg-purple-500/25 flex items-center justify-center">
+              <span className="text-2xl font-mono font-bold text-white drop-shadow-lg">✓</span>
             </div>
           )}
         </div>

@@ -17,25 +17,24 @@ export function ScoreBoard({
 }: ScoreBoardProps) {
   const { t } = useT();
   return (
-    <div className="w-full flex items-center justify-between px-4 py-3 bg-surface border-b border-border">
+    <div className="w-full flex items-center justify-between px-4 py-2 bg-surface border-b border-white/10 font-mono">
       {/* Stage */}
-      <div className="flex flex-col items-center">
-        <span className="text-xs text-gray-500 uppercase tracking-wider">
+      <div className="flex flex-col items-center min-w-[48px]">
+        <span className="text-[10px] text-white/40 uppercase tracking-widest">
           {t.scoreboard.stage}
         </span>
-        <span className="text-xl font-bold text-purple-400">{stage}</span>
+        <span className="text-2xl font-black text-purple-400 leading-none">{stage}</span>
       </div>
 
-      {/* Progress */}
+      {/* Progress bar + pairs */}
       <div className="flex flex-col items-center flex-1 mx-4">
-        <div className="flex items-center gap-1 mb-1">
-          <span className="text-xs text-gray-500">
-            {t.scoreboard.pairsOf(matchedPairs, totalPairs)}
-          </span>
-        </div>
-        <div className="w-full h-1.5 bg-surface-2 rounded-full overflow-hidden">
+        <span className="text-[10px] text-white/50 mb-1">
+          {t.scoreboard.pairsOf(matchedPairs, totalPairs)}
+        </span>
+        {/* Pixel-style progress bar */}
+        <div className="w-full h-2 bg-surface-2 border border-white/10 overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-purple-700 to-purple-400 rounded-full transition-all duration-500"
+            className="h-full bg-purple-500 transition-all duration-500"
             style={{
               width: totalPairs > 0 ? `${(matchedPairs / totalPairs) * 100}%` : "0%",
             }}
@@ -44,11 +43,11 @@ export function ScoreBoard({
       </div>
 
       {/* Moves */}
-      <div className="flex flex-col items-center">
-        <span className="text-xs text-gray-500 uppercase tracking-wider">
+      <div className="flex flex-col items-center min-w-[48px]">
+        <span className="text-[10px] text-white/40 uppercase tracking-widest">
           {t.scoreboard.moves}
         </span>
-        <span className="text-xl font-bold text-white">{moves}</span>
+        <span className="text-2xl font-black text-white leading-none">{moves}</span>
       </div>
     </div>
   );

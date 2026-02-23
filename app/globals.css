@@ -3,11 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --background: #0a0a0f;
-  --surface: #12121a;
-  --surface-2: #1a1a2e;
-  --border: #2a2a4a;
-  --accent: #a855f7;
+  --background: #030305;
+  --surface: #08080f;
+  --surface-2: #0e0e1a;
+  --border: #1e1e2e;
+  --accent: #c084fc;
+  --pixel-white: #e8e8e8;
+  --pixel-light: #a0a0b0;
 }
 
 * {
@@ -21,9 +23,8 @@ body {
   max-width: 100vw;
   overflow-x: hidden;
   background-color: var(--background);
-  color: white;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  /* Farcaster Mini App fits in a frame - prevent overscroll */
+  color: var(--pixel-white);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   overscroll-behavior: none;
   height: 100%;
 }
@@ -32,6 +33,14 @@ body {
 main {
   min-height: 100vh;
   background-color: var(--background);
+}
+
+/* Voxel grid background for game board */
+.voxel-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
 /* Custom scrollbar */
@@ -43,7 +52,7 @@ main {
 }
 ::-webkit-scrollbar-thumb {
   background: var(--accent);
-  border-radius: 4px;
+  border-radius: 0;
 }
 
 /* Card flip utility */
@@ -53,4 +62,9 @@ main {
 
 .backface-hidden {
   backface-visibility: hidden;
+}
+
+/* Pixel border glow for matched cards */
+.pixel-glow {
+  box-shadow: 0 0 0 1px #c084fc, 0 0 8px rgba(192,132,252,0.5), 0 0 20px rgba(192,132,252,0.2);
 }

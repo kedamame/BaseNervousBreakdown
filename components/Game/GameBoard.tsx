@@ -42,7 +42,7 @@ export function GameBoard({ gameState, onFlipCard, onCheckMatch }: GameBoardProp
   const isDisabled = flippedCards.length >= 2 || status !== "playing";
 
   return (
-    <div className="flex-1 flex items-center justify-center p-4 overflow-auto">
+    <div className="flex-1 flex items-center justify-center p-4 overflow-auto voxel-grid">
       <div
         className={`grid ${gridCols} gap-2`}
         style={{ maxWidth: "100%", maxHeight: "calc(100vh - 160px)" }}
