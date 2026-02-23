@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useWriteContract, usePublicClient, useChainId, useSwitchChain, useAccount } from "wagmi";
+import { useWriteContract, usePublicClient, useChainId, useAccount, useSwitchChain } from "wagmi";
 import { base } from "wagmi/chains";
 import { MEMORY_GAME_ABI, CONTRACT_ADDRESS } from "@/lib/constants";
 import type { BaseError } from "viem";
@@ -10,6 +10,67 @@ const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export type ScoreStatus = "idle" | "sending" | "confirming" | "confirmed" | "skipped" | "error";
 
+type EthProvider = { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
+
+/** Switch to Base Mainnet.
+ *  1. Tries wagmi switchChainAsync first (correct for the connected connector).
+ *  2. For injected wallets (Rabby/MetaMask) only: falls back to window.ethereum
+ *     direct call if wagmi fails (handles edge cases where wagmi path doesn't
+ *     trigger the popup for injected connectors).
+ *  After wallet_addEthereumChain (4902) a follow-up switch is issued explicitly. */
+async function switchToBase(
+  chainId: number,
+  wagmiSwitch: () => Promise<unknown>,
+  isInjectedConnector: boolean
+): Promise<void> {
+  if (chainId === base.id) return;
+
+  // Primary: use wagmi to switch via the connected connector
+  try {
+    await wagmiSwitch();
+    return;
+  } catch (originalErr) {
+    // window.ethereum fallback is only safe when using an injected connector
+    // (where window.ethereum IS the connected wallet). For non-injected
+    // connectors (Coinbase, WalletConnect, Farcaster), propagate the error.
+    if (!isInjectedConnector) throw originalErr;
+  }
+
+  const provider = typeof window !== "undefined"
+    ? (window as Window & { ethereum?: EthProvider }).ethereum
+    : null;
+
+  if (!provider) throw new Error("Cannot switch to Base: no compatible wallet provider found");
+
+  try {
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: "0x2105" }], // Base Mainnet = 8453
+    });
+  } catch (err) {
+    if ((err as { code?: number | string }).code == 4902) { // == handles both number and string "4902"
+      // Base not in wallet yet — add it, then switch explicitly
+      await provider.request({
+        method: "wallet_addEthereumChain",
+        params: [{
+          chainId: "0x2105",
+          chainName: "Base",
+          nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+          rpcUrls: ["https://mainnet.base.org"],
+          blockExplorerUrls: ["https://basescan.org"],
+        }],
+      });
+      // Explicitly switch after adding (some wallets don't auto-switch)
+      await provider.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0x2105" }],
+      });
+    } else {
+      throw err;
+    }
+  }
+}
+
 export function useScore() {
   const [status, setStatus] = useState<ScoreStatus>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -17,8 +78,8 @@ export function useScore() {
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
   const chainId = useChainId();
+  const { address, connector } = useAccount();
   const { switchChainAsync } = useSwitchChain();
-  const { address } = useAccount();
 
   const recordScore = useCallback(
     async (stage: number, moves: number): Promise<boolean> => {
@@ -32,15 +93,12 @@ export function useScore() {
       }
 
       try {
-        // Switch to Base before submitting.
-        // No inner try-catch: if the switch fails (user rejects, wallet error, etc.)
-        // the error propagates to the outer catch and is shown to the user.
-        if (chainId !== base.id) {
-          await switchChainAsync({ chainId: base.id });
-        }
+        // Ensure we're on Base before submitting.
+        // window.ethereum fallback is only used for injected connectors (Rabby/MetaMask).
+        const isInjected = connector?.type === "injected";
+        await switchToBase(chainId, () => switchChainAsync({ chainId: base.id }), isInjected);
 
         // Simulate first to catch contract reverts (cooldown, invalid args, etc.)
-        // before showing the wallet prompt. Gives specific revert reasons.
         if (publicClient && address) {
           await publicClient.simulateContract({
             address: CONTRACT_ADDRESS,
@@ -68,7 +126,6 @@ export function useScore() {
         return true;
       } catch (err) {
         console.error("[useScore] recordScore error:", err);
-        // viem BaseError has a concise shortMessage; fall back to first line of message
         const viemErr = err as BaseError;
         const msg =
           viemErr.shortMessage ||
@@ -78,7 +135,7 @@ export function useScore() {
         return false;
       }
     },
-    [writeContractAsync, publicClient, chainId, switchChainAsync, address]
+    [writeContractAsync, publicClient, chainId, address, connector, switchChainAsync]
   );
 
   const reset = useCallback(() => {

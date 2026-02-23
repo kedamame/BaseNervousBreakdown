@@ -96,12 +96,11 @@ contract MemoryGame {
 
     /**
      * @dev Returns the minimum number of moves (= pairs) for a given stage.
-     *      Mirrors the client-side getCardCount() / 2 logic.
-     *      Stage 1: 2 pairs, Stage 2: 4 pairs, Stage 3+: 4*(stage-1) pairs.
+     *      Mirrors the client-side getCardCount() / 2 = stage * 2 logic.
+     *      Stage 1: 2 pairs, Stage 2: 4 pairs, Stage 3: 6 pairs, etc.
+     *      NOTE: Requires redeployment after client-side getCardCount change.
      */
     function _pairsForStage(uint32 stage) internal pure returns (uint32) {
-        if (stage == 1) return 2;
-        if (stage == 2) return 4;
-        return 4 * (stage - 1);
+        return stage * 2;
     }
 }

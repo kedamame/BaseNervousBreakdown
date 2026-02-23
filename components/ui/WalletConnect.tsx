@@ -30,7 +30,7 @@ export function WalletConnect({ onStart }: WalletConnectProps) {
   const { disconnect } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
   const connectors = useConnectors();
-  const { isConnected, address } = useAccount();
+  const { isConnected, address, connector } = useAccount();
   const chainId = useChainId();
 
   const [isSwitching, setIsSwitching] = useState(false);
@@ -46,7 +46,51 @@ export function WalletConnect({ onStart }: WalletConnectProps) {
     setSwitchError(null);
     setIsSwitching(true);
     try {
-      await switchChainAsync({ chainId: base.id });
+      // Primary: use wagmi to switch via the connected connector
+      try {
+        await switchChainAsync({ chainId: base.id });
+        return;
+      } catch (originalErr) {
+        // window.ethereum fallback is only safe for injected connectors
+        // (Rabby/MetaMask), where window.ethereum IS the connected wallet.
+        if (connector?.type !== "injected") throw originalErr;
+      }
+
+      // Fallback for injected wallets: window.ethereum direct call
+      const provider = typeof window !== "undefined"
+        ? (window as Window & { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum
+        : null;
+
+      if (!provider) {
+        throw new Error("No compatible wallet provider to switch chains");
+      }
+      try {
+        await provider.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0x2105" }], // Base Mainnet = 8453
+        });
+      } catch (err) {
+        // 4902 = chain not added to wallet (== handles both number and string "4902")
+        if ((err as { code?: number | string }).code == 4902) {
+          await provider.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: "0x2105",
+              chainName: "Base",
+              nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+              rpcUrls: ["https://mainnet.base.org"],
+              blockExplorerUrls: ["https://basescan.org"],
+            }],
+          });
+          // Explicitly switch after adding (some wallets don't auto-switch)
+          await provider.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: "0x2105" }],
+          });
+        } else {
+          throw err;
+        }
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message.split("\n")[0] : "Failed to switch network";
       setSwitchError(msg);

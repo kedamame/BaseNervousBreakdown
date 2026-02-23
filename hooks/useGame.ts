@@ -6,8 +6,6 @@ import { createDeck, getStageConfig } from "@/lib/gameLogic";
 
 const INITIAL_HP = 100;
 const HEART_RESTORE = 20;
-const BASE_DAMAGE = 5;
-const MAX_DAMAGE = 30;
 
 type GameAction =
   | { type: "START_LOADING" }
@@ -113,7 +111,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
           status: allMatched ? "stage_complete" : "playing",
         };
       } else {
-        const damage = Math.min(MAX_DAMAGE, (state.consecutiveMisses + 1) * BASE_DAMAGE);
+        // 1st miss = 0, 2nd = 5, 3rd+ = 10 (cap)
+        const damage = state.consecutiveMisses === 0 ? 0 : Math.min(10, state.consecutiveMisses * 5);
         const newHp = Math.max(0, state.hp - damage);
         return {
           ...state,

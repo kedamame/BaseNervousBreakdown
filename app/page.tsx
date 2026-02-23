@@ -30,7 +30,7 @@ export default function Home() {
     nextStage,
   } = useGame();
 
-  const { state: alchemyState, loadAssetsForStage, prefetchForNextStage, getImages } =
+  const { state: alchemyState, loadAssetsForStage, prefetchForNextStage, getImages, resetImages } =
     useAlchemy();
 
   const { recordScore, status: scoreStatus, error: recordError, reset: resetScore } =
@@ -65,6 +65,8 @@ export default function Home() {
     async (stage: number, walletAddress: string) => {
       const config = getStageConfig(stage);
       const images = await loadAssetsForStage(walletAddress, config.pairsNeeded);
+      // null means a reset happened mid-flight; a newer load is already in-flight
+      if (images === null) return;
       startStage(stage, images);
 
       // Background-prefetch for the next stage
@@ -76,9 +78,10 @@ export default function Home() {
 
   const handleStartGame = useCallback(() => {
     if (!address) return;
+    resetImages();
     setGameStarted(true);
     beginStage(1, address);
-  }, [address, beginStage]);
+  }, [address, beginStage, resetImages]);
 
   const handleRecordGameOver = useCallback(() => {
     recordScore(gameState.stage, gameState.totalMoves + gameState.moves);

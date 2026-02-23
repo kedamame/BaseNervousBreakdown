@@ -28,6 +28,8 @@ export function useAlchemy() {
   // Hold all fetched images for use across stages
   const allImagesRef = useRef<AssetImage[]>([]);
   const fetchedRef = useRef(false);
+  // Incremented on each reset to invalidate in-flight prefetch responses
+  const resetVersionRef = useRef(0);
 
   const loadAssetsForStage = useCallback(
     async (address: string, pairsNeeded: number) => {
@@ -41,6 +43,9 @@ export function useAlchemy() {
         }));
         return allImagesRef.current;
       }
+
+      // Capture version to detect mid-flight reset
+      const version = resetVersionRef.current;
 
       setState({
         images: [],
@@ -77,6 +82,10 @@ export function useAlchemy() {
 
         // Step 3: Build pool with demo fallback
         const pool = buildImagePool(nfts, tokens, pairsNeeded);
+
+        // Discard result if a reset happened while we were fetching
+        if (resetVersionRef.current !== version) return null;
+
         allImagesRef.current = pool;
         fetchedRef.current = true;
 
@@ -90,6 +99,7 @@ export function useAlchemy() {
 
         return pool;
       } catch (err) {
+        if (resetVersionRef.current !== version) return null;
         const message = err instanceof Error ? err.message : "Unknown error";
         // Fall back to demo images even on network error
         const fallback = buildImagePool([], [], pairsNeeded);
@@ -114,10 +124,14 @@ export function useAlchemy() {
   const prefetchForNextStage = useCallback(
     async (address: string, nextPairsNeeded: number) => {
       if (allImagesRef.current.length >= nextPairsNeeded) return;
+      // Capture version before async work to detect if reset() was called mid-flight
+      const version = resetVersionRef.current;
       // Silently extend the pool
       try {
         const nfts = await fetchNFTImages(address);
         const tokens = await fetchTokenImages(address);
+        // Discard result if a reset happened while we were fetching
+        if (resetVersionRef.current !== version) return;
         const pool = buildImagePool(nfts, tokens, nextPairsNeeded);
         allImagesRef.current = pool;
         setState((prev) => ({ ...prev, images: pool }));
@@ -130,5 +144,11 @@ export function useAlchemy() {
 
   const getImages = useCallback(() => allImagesRef.current, []);
 
-  return { state, loadAssetsForStage, prefetchForNextStage, getImages };
+  const resetImages = useCallback(() => {
+    resetVersionRef.current++;
+    allImagesRef.current = [];
+    fetchedRef.current = false;
+  }, []);
+
+  return { state, loadAssetsForStage, prefetchForNextStage, getImages, resetImages };
 }

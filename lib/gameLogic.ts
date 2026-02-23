@@ -2,12 +2,10 @@ import { AssetImage, GameCard, StageConfig } from "./types";
 
 /**
  * Returns total card count for a given stage.
- * Stage 1: 4, Stage 2: 8, Stage 3+: 8*(stage-1)
+ * Always stage * 4: Stage 1=4, Stage 2=8, Stage 3=12, ...
  */
 export function getCardCount(stage: number): number {
-  if (stage === 1) return 4;
-  if (stage === 2) return 8;
-  return 8 * (stage - 1);
+  return stage * 4;
 }
 
 export function getStageConfig(stage: number): StageConfig {
