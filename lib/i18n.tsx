@@ -30,6 +30,8 @@ const en = {
     connected: "Connected",
     startGame: "Start Game",
     switchWallet: "Switch Wallet",
+    wrongNetwork: "Base Mainnet required",
+    switchToBase: "Switch to Base",
   },
   scoreboard: {
     stage: "Stage",
@@ -94,6 +96,8 @@ const ja: typeof en = {
     connected: "接続済み",
     startGame: "ゲームスタート",
     switchWallet: "ウォレットを切替",
+    wrongNetwork: "Base Mainnetが必要です",
+    switchToBase: "Baseに切り替える",
   },
   scoreboard: {
     stage: "Stage",

@@ -1,6 +1,8 @@
 "use client";
 
-import { useConnect, useConnectors, useAccount, useDisconnect } from "wagmi";
+import { useState } from "react";
+import { useConnect, useConnectors, useAccount, useDisconnect, useChainId, useSwitchChain } from "wagmi";
+import { base } from "wagmi/chains";
 import { useT } from "@/lib/i18n";
 import { LanguageToggle } from "./LanguageToggle";
 
@@ -26,12 +28,32 @@ export function WalletConnect({ onStart }: WalletConnectProps) {
   const { t } = useT();
   const { connect, isPending, variables } = useConnect();
   const { disconnect } = useDisconnect();
+  const { switchChainAsync } = useSwitchChain();
   const connectors = useConnectors();
   const { isConnected, address } = useAccount();
+  const chainId = useChainId();
+
+  const [isSwitching, setIsSwitching] = useState(false);
+  const [switchError, setSwitchError] = useState<string | null>(null);
+
+  const isOnBase = chainId === base.id;
 
   const shortAddress = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : "";
+
+  const handleSwitchToBase = async () => {
+    setSwitchError(null);
+    setIsSwitching(true);
+    try {
+      await switchChainAsync({ chainId: base.id });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message.split("\n")[0] : "Failed to switch network";
+      setSwitchError(msg);
+    } finally {
+      setIsSwitching(false);
+    }
+  };
 
   // Filter out farcasterMiniApp in browser context (it won't work outside Farcaster)
   const isInFarcaster =
@@ -59,7 +81,7 @@ export function WalletConnect({ onStart }: WalletConnectProps) {
       </div>
 
       {isConnected && onStart ? (
-        /* ── Connected state: show address + Start / Switch ── */
+        /* ── Connected state ── */
         <div className="w-full max-w-xs bg-surface-2 border border-white/10 p-6">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-purple-400 text-sm">✓</span>
@@ -73,25 +95,71 @@ export function WalletConnect({ onStart }: WalletConnectProps) {
             {shortAddress}
           </div>
 
-          {/* Start Game */}
-          <button
-            onClick={onStart}
-            className="w-full py-4 bg-purple-500/20 border border-purple-500/60 text-purple-400
-              font-black text-base uppercase tracking-widest
-              hover:bg-purple-500/30 hover:border-purple-400 active:scale-95 transition-all mb-3"
-          >
-            {t.walletConnect.startGame}
-          </button>
+          {!isOnBase ? (
+            /* ── Wrong network: show Switch to Base ── */
+            <>
+              <div className="flex items-center gap-2 mb-3 px-1">
+                <span className="text-yellow-400 text-sm">⚠</span>
+                <span className="text-yellow-400 text-xs uppercase tracking-widest">
+                  {t.walletConnect.wrongNetwork}
+                </span>
+              </div>
 
-          {/* Switch Wallet */}
-          <button
-            onClick={() => disconnect()}
-            className="w-full py-3 bg-surface border border-white/15 text-white/40
-              font-black text-xs uppercase tracking-widest
-              hover:border-white/30 hover:text-white/60 active:scale-95 transition-all"
-          >
-            {t.walletConnect.switchWallet}
-          </button>
+              {switchError && (
+                <p className="text-red-400 text-xs mb-3 break-all leading-relaxed">
+                  {switchError.length > 80 ? switchError.slice(0, 80) + "…" : switchError}
+                </p>
+              )}
+
+              <button
+                onClick={handleSwitchToBase}
+                disabled={isSwitching}
+                className="w-full py-4 bg-yellow-500/10 border border-yellow-500/60 text-yellow-400
+                  font-black text-base uppercase tracking-widest
+                  hover:bg-yellow-500/20 hover:border-yellow-400 active:scale-95
+                  transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+              >
+                {isSwitching ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin">⟳</span>
+                    {t.walletConnect.switchToBase}
+                  </span>
+                ) : (
+                  t.walletConnect.switchToBase
+                )}
+              </button>
+
+              <button
+                onClick={() => disconnect()}
+                className="w-full py-3 bg-surface border border-white/15 text-white/40
+                  font-black text-xs uppercase tracking-widest
+                  hover:border-white/30 hover:text-white/60 active:scale-95 transition-all"
+              >
+                {t.walletConnect.switchWallet}
+              </button>
+            </>
+          ) : (
+            /* ── On Base: Start Game ── */
+            <>
+              <button
+                onClick={onStart}
+                className="w-full py-4 bg-purple-500/20 border border-purple-500/60 text-purple-400
+                  font-black text-base uppercase tracking-widest
+                  hover:bg-purple-500/30 hover:border-purple-400 active:scale-95 transition-all mb-3"
+              >
+                {t.walletConnect.startGame}
+              </button>
+
+              <button
+                onClick={() => disconnect()}
+                className="w-full py-3 bg-surface border border-white/15 text-white/40
+                  font-black text-xs uppercase tracking-widest
+                  hover:border-white/30 hover:text-white/60 active:scale-95 transition-all"
+              >
+                {t.walletConnect.switchWallet}
+              </button>
+            </>
+          )}
         </div>
       ) : (
         /* ── Not connected: wallet selection ── */
