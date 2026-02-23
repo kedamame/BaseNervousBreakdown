@@ -1,12 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
   <defs>
-    <linearGradient id="lg12" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#a855f7"/>
-      <stop offset="100%" stop-color="#7e22ce"/>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2EBAC6"/>
+      <stop offset="100%" stop-color="#1A8A95"/>
     </linearGradient>
   </defs>
-  <rect width="200" height="200" fill="#0a0a0f" rx="12"/>
-  <path d="M 55 160 C 55 100, 20 60, 55 30 C 90 0, 100 40, 100 80" fill="none" stroke="url(#lg12)" stroke-width="18" stroke-linecap="round"/>
-  <path d="M 145 160 C 145 100, 180 60, 145 30 C 110 0, 100 40, 100 80" fill="none" stroke="url(#lg12)" stroke-width="18" stroke-linecap="round"/>
-  <circle cx="100" cy="80" r="10" fill="#a855f7"/>
+  <rect width="120" height="120" rx="10" fill="url(#g)"/>
+  <rect x="4" y="4" width="112" height="112" rx="7" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+  <rect x="8" y="8" width="104" height="104" rx="5" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+  <text x="60" y="72" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="56" font-weight="900" fill="white" opacity="0.95">A</text>
+  <text x="60" y="101" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="rgba(255,255,255,0.65)" letter-spacing="3">AAVE</text>
 </svg>

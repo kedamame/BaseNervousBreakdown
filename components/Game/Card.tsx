@@ -35,27 +35,17 @@ export function Card({ card, size, onClick, disabled }: CardProps) {
         {/* Card Back */}
         <div
           className={`
-            absolute inset-0 rounded-lg border-2 flex items-center justify-center
-            ${isMatched ? "border-purple-500 bg-purple-900/30" : "border-border bg-surface-2"}
+            absolute inset-0 rounded-lg border-2 overflow-hidden
+            ${isMatched ? "border-purple-500" : "border-purple-800"}
             transition-colors duration-300
           `}
           style={{ backfaceVisibility: "hidden" }}
         >
-          {/* Card back pattern */}
-          <div className="w-full h-full rounded-lg overflow-hidden flex items-center justify-center">
-            <div
-              className="w-3/4 h-3/4 rounded"
-              style={{
-                background:
-                  "linear-gradient(135deg, #3b0764 0%, #7e22ce 50%, #1a1a2e 100%)",
-                backgroundSize: "200% 200%",
-              }}
-            >
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-purple-300 text-lg opacity-60">⬡</span>
-              </div>
-            </div>
-          </div>
+          <img
+            src="/card-back.svg"
+            alt="Card back"
+            className="w-full h-full object-cover"
+          />
         </div>
 
         {/* Card Front */}

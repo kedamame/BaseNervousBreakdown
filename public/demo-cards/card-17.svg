@@ -1,24 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
   <defs>
-    <linearGradient id="lg17a" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#a855f7"/>
-      <stop offset="100%" stop-color="#a855f720"/>
-    </linearGradient>
-    <linearGradient id="lg17b" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#0052FF"/>
-      <stop offset="100%" stop-color="#0052FF20"/>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5C3DCA"/>
+      <stop offset="100%" stop-color="#3A2190"/>
     </linearGradient>
   </defs>
-  <rect width="200" height="200" fill="#0a0a0f" rx="12"/>
-  <line x1="25" y1="170" x2="175" y2="170" stroke="#333" stroke-width="2"/>
-  <line x1="25" y1="170" x2="25" y2="20" stroke="#333" stroke-width="2"/>
-  <rect x="35" y="130" width="22" height="40" fill="url(#lg17a)" rx="3"/>
-  <rect x="67" y="110" width="22" height="60" fill="url(#lg17b)" rx="3"/>
-  <rect x="99" y="85" width="22" height="85" fill="url(#lg17a)" rx="3"/>
-  <rect x="131" y="55" width="22" height="115" fill="url(#lg17b)" rx="3"/>
-  <polyline points="46,130 78,110 110,85 142,55" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
-  <circle cx="46" cy="130" r="3" fill="white"/>
-  <circle cx="78" cy="110" r="3" fill="white"/>
-  <circle cx="110" cy="85" r="3" fill="white"/>
-  <circle cx="142" cy="55" r="3" fill="white"/>
+  <rect width="120" height="120" rx="10" fill="url(#g)"/>
+  <rect x="4" y="4" width="112" height="112" rx="7" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+  <rect x="8" y="8" width="104" height="104" rx="5" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+  <text x="60" y="72" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="56" font-weight="900" fill="white" opacity="0.95">Z</text>
+  <text x="60" y="101" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="rgba(255,255,255,0.65)" letter-spacing="3">ZORA</text>
 </svg>

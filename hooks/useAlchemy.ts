@@ -91,13 +91,17 @@ export function useAlchemy() {
         return pool;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
-        setState((prev) => ({
-          ...prev,
+        // Fall back to demo images even on network error
+        const fallback = buildImagePool([], [], pairsNeeded);
+        allImagesRef.current = fallback;
+        setState({
+          images: fallback,
           isLoading: false,
+          progress: 100,
           error: message,
           message: "読み込みエラー。デモ画像で進めます...",
-        }));
-        return allImagesRef.current;
+        });
+        return fallback;
       }
     },
     []

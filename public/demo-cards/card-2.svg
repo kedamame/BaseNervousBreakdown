@@ -1,6 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
-  <rect width="200" height="200" fill="#0a0a0f" rx="12"/>
-  <polygon points="100,25 140,95 100,115 60,95" fill="#a855f7"/>
-  <polygon points="100,175 140,95 100,115" fill="#7e22ce"/>
-  <polygon points="100,175 60,95 100,115" fill="#9333ea"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#627EEA"/>
+      <stop offset="100%" stop-color="#3B4AA0"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="10" fill="url(#g)"/>
+  <rect x="4" y="4" width="112" height="112" rx="7" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="1.5"/>
+  <rect x="8" y="8" width="104" height="104" rx="5" fill="none" stroke="rgba(255,255,255,0.10)" stroke-width="1"/>
+  <text x="60" y="72" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="56" font-weight="900" fill="white" opacity="0.95">E</text>
+  <text x="60" y="101" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="rgba(255,255,255,0.65)" letter-spacing="3">ETH</text>
 </svg>
