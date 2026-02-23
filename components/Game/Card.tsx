@@ -49,11 +49,11 @@ export function Card({ card, size, onClick, disabled }: CardProps) {
         <div
           className={`absolute inset-0 overflow-hidden border ${
             isMatched && isHeart
-              ? "border-red-400 heart-glow"
+              ? "border-pink-300 heart-glow"
               : isMatched
               ? "border-purple-400 pixel-glow"
               : isHeart
-              ? "border-red-400/60"
+              ? "border-pink-400/80"
               : "border-white/30"
           }`}
           style={{

@@ -30,9 +30,16 @@ export function useScore() {
       }
 
       try {
-        // Auto-switch to Base mainnet before sending
+        // Best-effort explicit chain switch (MetaMask etc.)
+        // Wrapped in its own try-catch so Farcaster/connectors that don't
+        // support switchChain don't abort the transaction.
         if (chainId !== base.id) {
-          await switchChainAsync({ chainId: base.id });
+          try {
+            await switchChainAsync({ chainId: base.id });
+          } catch {
+            // Connector may not support switchChain; wagmi will handle it
+            // via the chainId field on writeContractAsync below.
+          }
         }
 
         setStatus("sending");
@@ -41,6 +48,7 @@ export function useScore() {
           abi: MEMORY_GAME_ABI,
           functionName: "recordGame",
           args: [stage, moves],
+          chainId: base.id, // wagmi v2: triggers wallet chain switch if needed
         });
 
         // Wait for the transaction to be mined (1 confirmation)

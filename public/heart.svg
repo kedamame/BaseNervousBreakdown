@@ -1,37 +1,38 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
-  <!-- Black base -->
-  <rect width="120" height="120" fill="#030305"/>
+  <!-- Vivid magenta base (unmistakably distinct from all demo cards) -->
+  <rect width="120" height="120" fill="#B5005B"/>
   <!-- Pixel border (outer white) -->
-  <rect x="2" y="2" width="116" height="116" fill="none" stroke="#e8e8e8" stroke-width="2"/>
+  <rect x="2" y="2" width="116" height="116" fill="none" stroke="#ffffff" stroke-width="2"/>
   <!-- Inner accent border -->
-  <rect x="6" y="6" width="108" height="108" fill="none" stroke="#f87171" stroke-width="1" opacity="0.6"/>
+  <rect x="6" y="6" width="108" height="108" fill="none" stroke="#ffb3d9" stroke-width="1" opacity="0.7"/>
   <!-- Corner bright pixels -->
   <rect x="2" y="2" width="5" height="5" fill="#ffffff"/>
   <rect x="113" y="2" width="5" height="5" fill="#ffffff"/>
   <rect x="2" y="113" width="5" height="5" fill="#ffffff"/>
   <rect x="113" y="113" width="5" height="5" fill="#ffffff"/>
   <!-- Dark overlay strips (depth) -->
-  <rect x="2" y="2" width="116" height="12" fill="rgba(0,0,0,0.25)"/>
-  <rect x="2" y="106" width="116" height="12" fill="rgba(0,0,0,0.35)"/>
-  <!-- Pixel heart shape (8x7 pixel grid, each pixel=8px, centered at 60,68) -->
-  <!-- Row 1: cols 2-3, 5-6 -->
-  <rect x="28" y="36" width="16" height="8" fill="#f87171"/>
-  <rect x="76" y="36" width="16" height="8" fill="#f87171"/>
-  <!-- Row 2: cols 1-7 (full) -->
-  <rect x="20" y="44" width="80" height="8" fill="#f87171"/>
-  <!-- Row 3: cols 1-7 -->
-  <rect x="20" y="52" width="80" height="8" fill="#f87171"/>
-  <!-- Row 4: cols 1-7 -->
-  <rect x="20" y="60" width="80" height="8" fill="#f87171"/>
-  <!-- Row 5: cols 2-6 -->
-  <rect x="28" y="68" width="64" height="8" fill="#f87171"/>
-  <!-- Row 6: cols 3-5 -->
-  <rect x="36" y="76" width="48" height="8" fill="#f87171"/>
-  <!-- Row 7: col 4 (tip) -->
-  <rect x="52" y="84" width="16" height="8" fill="#f87171"/>
-  <!-- White highlight pixels (top-left of each lobe) -->
-  <rect x="28" y="36" width="8" height="4" fill="#ffffff" opacity="0.6"/>
-  <rect x="76" y="36" width="8" height="4" fill="#ffffff" opacity="0.6"/>
+  <rect x="2" y="2" width="116" height="12" fill="rgba(0,0,0,0.30)"/>
+  <rect x="2" y="106" width="116" height="12" fill="rgba(0,0,0,0.40)"/>
+  <!-- Pixel heart shape — white pixels on magenta background -->
+  <!-- Row 1: left lobe top, right lobe top -->
+  <rect x="28" y="36" width="16" height="8" fill="#ffffff"/>
+  <rect x="76" y="36" width="16" height="8" fill="#ffffff"/>
+  <!-- Row 2: full width -->
+  <rect x="20" y="44" width="80" height="8" fill="#ffffff"/>
+  <!-- Row 3 -->
+  <rect x="20" y="52" width="80" height="8" fill="#ffffff"/>
+  <!-- Row 4 -->
+  <rect x="20" y="60" width="80" height="8" fill="#ffffff"/>
+  <!-- Row 5 -->
+  <rect x="28" y="68" width="64" height="8" fill="#ffffff"/>
+  <!-- Row 6 -->
+  <rect x="36" y="76" width="48" height="8" fill="#ffffff"/>
+  <!-- Row 7: tip -->
+  <rect x="52" y="84" width="16" height="8" fill="#ffffff"/>
+  <!-- Pink shadow pixels (bottom-right of heart for depth) -->
+  <rect x="92" y="44" width="8" height="8" fill="rgba(0,0,0,0.20)"/>
+  <rect x="84" y="68" width="8" height="8" fill="rgba(0,0,0,0.20)"/>
+  <rect x="76" y="76" width="8" height="8" fill="rgba(0,0,0,0.20)"/>
   <!-- Label -->
-  <text x="60" y="108" text-anchor="middle" font-family="ui-monospace, Menlo, Monaco, monospace" font-size="9" fill="rgba(192,132,252,0.8)" letter-spacing="3">HEART</text>
+  <text x="60" y="108" text-anchor="middle" font-family="ui-monospace, Menlo, Monaco, monospace" font-size="9" fill="rgba(255,255,255,0.8)" letter-spacing="3">HEART</text>
 </svg>
