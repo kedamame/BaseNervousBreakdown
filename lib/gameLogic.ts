@@ -32,33 +32,46 @@ export function shuffle<T>(array: T[]): T[] {
 }
 
 /**
- * Creates a shuffled deck of GameCards from a pool of images.
- * Each image is used twice (as a pair).
+ * Heart card image — restores HP when matched.
  */
-export function createDeck(images: AssetImage[], pairsNeeded: number): GameCard[] {
-  const selected = images.slice(0, pairsNeeded);
+export const HEART_IMAGE: AssetImage = {
+  id: "heart",
+  imageUrl: "/heart.svg",
+  name: "Heart",
+  type: "heart",
+};
+
+/**
+ * Creates a shuffled deck of GameCards.
+ * Injects 1 heart pair per 8 cards (floor(totalCards / 8)).
+ */
+export function createDeck(
+  images: AssetImage[],
+  pairsNeeded: number,
+  totalCards: number
+): GameCard[] {
+  const heartCount = Math.floor(totalCards / 8);
+  const regularCount = pairsNeeded - heartCount;
+  const selected = images.slice(0, regularCount);
   const cards: GameCard[] = [];
 
+  // Regular pairs
   selected.forEach((image, index) => {
     const pairId = `pair-${index}`;
-    // Create two cards per image
     cards.push(
-      {
-        id: `${pairId}-a`,
-        pairId,
-        image,
-        state: "hidden",
-        position: 0,
-      },
-      {
-        id: `${pairId}-b`,
-        pairId,
-        image,
-        state: "hidden",
-        position: 0,
-      }
+      { id: `${pairId}-a`, pairId, image, state: "hidden", position: 0 },
+      { id: `${pairId}-b`, pairId, image, state: "hidden", position: 0 }
     );
   });
+
+  // Heart pairs
+  for (let h = 0; h < heartCount; h++) {
+    const pairId = `heart-${h}`;
+    cards.push(
+      { id: `${pairId}-a`, pairId, image: HEART_IMAGE, state: "hidden", position: 0 },
+      { id: `${pairId}-b`, pairId, image: HEART_IMAGE, state: "hidden", position: 0 }
+    );
+  }
 
   const shuffled = shuffle(cards);
   return shuffled.map((card, i) => ({ ...card, position: i }));

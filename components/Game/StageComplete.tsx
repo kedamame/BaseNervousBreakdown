@@ -10,6 +10,8 @@ interface StageCompleteProps {
   scoreStatus: ScoreStatus;
   recordError: string | null;
   onNextStage: () => void;
+  hp: number;
+  maxHp: number;
 }
 
 export function StageComplete({
@@ -19,12 +21,16 @@ export function StageComplete({
   scoreStatus,
   recordError,
   onNextStage,
+  hp,
+  maxHp,
 }: StageCompleteProps) {
   const { t } = useT();
   const isRecording = scoreStatus === "sending" || scoreStatus === "confirming";
   const efficiency = totalPairs > 0 ? totalPairs / moves : 0;
   const stars =
     efficiency >= 0.8 ? 3 : efficiency >= 0.6 ? 2 : efficiency >= 0.4 ? 1 : 0;
+  const hpPct = maxHp > 0 ? (hp / maxHp) * 100 : 0;
+  const hpBarColor = hp > 60 ? "bg-purple-500" : hp > 30 ? "bg-yellow-500" : "bg-red-500";
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background px-6 text-center font-mono voxel-grid">
@@ -73,6 +79,19 @@ export function StageComplete({
           >
             {Math.round(efficiency * 100)}%
           </span>
+        </div>
+        {/* HP remaining */}
+        <div className="pt-3 border-t border-white/10 mt-3">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-white/40 text-xs uppercase tracking-widest">HP</span>
+            <span className={`text-xs font-black ${hp <= 30 ? "text-red-400" : "text-white/60"}`}>{hp} / {maxHp}</span>
+          </div>
+          <div className="w-full h-2 bg-surface border border-white/10 overflow-hidden">
+            <div
+              className={`h-full transition-all duration-500 ${hpBarColor}`}
+              style={{ width: `${hpPct}%` }}
+            />
+          </div>
         </div>
       </div>
 

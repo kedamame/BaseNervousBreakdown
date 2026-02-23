@@ -1,8 +1,13 @@
 "use client";
 
 import { useCallback, useReducer } from "react";
-import { AssetImage, GameCard, GameState } from "@/lib/types";
+import { AssetImage, GameState } from "@/lib/types";
 import { createDeck, getStageConfig } from "@/lib/gameLogic";
+
+const INITIAL_HP = 100;
+const HEART_RESTORE = 20;
+const BASE_DAMAGE = 5;
+const MAX_DAMAGE = 30;
 
 type GameAction =
   | { type: "START_LOADING" }
@@ -10,7 +15,6 @@ type GameAction =
   | { type: "START_STAGE"; stage: number; images: AssetImage[] }
   | { type: "FLIP_CARD"; cardId: string }
   | { type: "CHECK_MATCH" }
-  | { type: "STAGE_COMPLETE" }
   | { type: "START_RECORDING" }
   | { type: "NEXT_STAGE"; images: AssetImage[] }
   | { type: "SET_ERROR"; message: string };
@@ -23,8 +27,12 @@ const initialState: GameState = {
   matchedPairs: 0,
   totalPairs: 0,
   moves: 0,
+  totalMoves: 0,
   loadingProgress: 0,
   loadingMessage: "読み込み中...",
+  hp: INITIAL_HP,
+  maxHp: INITIAL_HP,
+  consecutiveMisses: 0,
 };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -41,7 +49,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
 
     case "START_STAGE": {
       const config = getStageConfig(action.stage);
-      const deck = createDeck(action.images, config.pairsNeeded);
+      const deck = createDeck(action.images, config.pairsNeeded, config.totalCards);
       return {
         ...state,
         status: "playing",
@@ -78,6 +86,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const cardA = state.cards.find((c) => c.id === idA)!;
       const cardB = state.cards.find((c) => c.id === idB)!;
       const isMatch = cardA.pairId === cardB.pairId;
+      const newMoves = state.moves + 1;
 
       const updatedCards = state.cards.map((c) => {
         if (c.id === idA || c.id === idB) {
@@ -86,22 +95,37 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         return c;
       });
 
-      const newMatchedPairs = state.matchedPairs + (isMatch ? 1 : 0);
-      const newMoves = state.moves + 1;
-      const allMatched = newMatchedPairs === state.totalPairs;
-
-      return {
-        ...state,
-        cards: updatedCards,
-        flippedCards: [],
-        matchedPairs: newMatchedPairs,
-        moves: newMoves,
-        status: allMatched ? "stage_complete" : "playing",
-      };
+      if (isMatch) {
+        const isHeart = cardA.image.type === "heart";
+        const newHp = isHeart
+          ? Math.min(state.maxHp, state.hp + HEART_RESTORE)
+          : state.hp;
+        const newMatchedPairs = state.matchedPairs + 1;
+        const allMatched = newMatchedPairs === state.totalPairs;
+        return {
+          ...state,
+          cards: updatedCards,
+          flippedCards: [],
+          matchedPairs: newMatchedPairs,
+          moves: newMoves,
+          consecutiveMisses: 0,
+          hp: newHp,
+          status: allMatched ? "stage_complete" : "playing",
+        };
+      } else {
+        const damage = Math.min(MAX_DAMAGE, (state.consecutiveMisses + 1) * BASE_DAMAGE);
+        const newHp = Math.max(0, state.hp - damage);
+        return {
+          ...state,
+          cards: updatedCards,
+          flippedCards: [],
+          moves: newMoves,
+          consecutiveMisses: state.consecutiveMisses + 1,
+          hp: newHp,
+          status: newHp <= 0 ? "game_over" : "playing",
+        };
+      }
     }
-
-    case "STAGE_COMPLETE":
-      return { ...state, status: "stage_complete" };
 
     case "START_RECORDING":
       return { ...state, status: "recording" };
@@ -109,7 +133,7 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     case "NEXT_STAGE": {
       const nextStage = state.stage + 1;
       const config = getStageConfig(nextStage);
-      const deck = createDeck(action.images, config.pairsNeeded);
+      const deck = createDeck(action.images, config.pairsNeeded, config.totalCards);
       return {
         ...state,
         status: "playing",
@@ -119,6 +143,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         matchedPairs: 0,
         totalPairs: config.pairsNeeded,
         moves: 0,
+        totalMoves: state.totalMoves + state.moves,
+        // hp, maxHp, consecutiveMisses carry over across stages
       };
     }
 

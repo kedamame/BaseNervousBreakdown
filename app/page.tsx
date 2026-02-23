@@ -11,6 +11,7 @@ import { useT } from "@/lib/i18n";
 import { LoadingScreen } from "@/components/Game/LoadingScreen";
 import { GameBoard } from "@/components/Game/GameBoard";
 import { StageComplete } from "@/components/Game/StageComplete";
+import { GameOver } from "@/components/Game/GameOver";
 import { ScoreBoard } from "@/components/ui/ScoreBoard";
 import { WalletConnect } from "@/components/ui/WalletConnect";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
@@ -26,7 +27,6 @@ export default function Home() {
     startStage,
     flipCard,
     checkMatch,
-    startRecording,
     nextStage,
   } = useGame();
 
@@ -90,17 +90,16 @@ export default function Home() {
     [loadAssetsForStage, startStage, prefetchForNextStage]
   );
 
-  // Handle stage complete: record score then wait for user to proceed
-  const handleStageComplete = useCallback(async () => {
-    startRecording();
-    await recordScore(gameState.stage, gameState.moves);
-  }, [startRecording, recordScore, gameState.stage, gameState.moves]);
-
+  // Game over: submit score once (only when HP reaches 0)
+  const hasRecordedGameOver = useRef(false);
   useEffect(() => {
-    if (gameState.status === "stage_complete") {
-      handleStageComplete();
+    if (gameState.status === "game_over" && !hasRecordedGameOver.current) {
+      hasRecordedGameOver.current = true;
+      const finalMoves = gameState.totalMoves + gameState.moves;
+      recordScore(gameState.stage, finalMoves);
     }
-  }, [gameState.status, handleStageComplete]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState.status]);
 
   const handleNextStage = useCallback(() => {
     resetScore();
@@ -135,8 +134,20 @@ export default function Home() {
     );
   }
 
-  // Stage complete / score recording screen
-  if (gameState.status === "stage_complete" || gameState.status === "recording") {
+  // Game over screen
+  if (gameState.status === "game_over") {
+    return (
+      <GameOver
+        stage={gameState.stage}
+        totalMoves={gameState.totalMoves + gameState.moves}
+        scoreStatus={scoreStatus}
+        recordError={recordError}
+      />
+    );
+  }
+
+  // Stage complete screen (no transaction — HP carries over)
+  if (gameState.status === "stage_complete") {
     return (
       <StageComplete
         stage={gameState.stage}
@@ -145,6 +156,8 @@ export default function Home() {
         scoreStatus={scoreStatus}
         recordError={recordError}
         onNextStage={handleNextStage}
+        hp={gameState.hp}
+        maxHp={gameState.maxHp}
       />
     );
   }
@@ -157,6 +170,9 @@ export default function Home() {
         moves={gameState.moves}
         matchedPairs={gameState.matchedPairs}
         totalPairs={gameState.totalPairs}
+        hp={gameState.hp}
+        maxHp={gameState.maxHp}
+        consecutiveMisses={gameState.consecutiveMisses}
       />
       <GameBoard
         gameState={gameState}

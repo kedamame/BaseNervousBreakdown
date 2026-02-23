@@ -2,7 +2,7 @@ export interface AssetImage {
   id: string;
   imageUrl: string;
   name: string;
-  type: "nft" | "token" | "demo";
+  type: "nft" | "token" | "demo" | "heart";
   contractAddress?: string;
   tokenId?: string;
 }
@@ -21,7 +21,8 @@ export type GameStatus =
   | "playing"
   | "stage_complete"
   | "recording"
-  | "error";
+  | "error"
+  | "game_over";
 
 export interface GameState {
   status: GameStatus;
@@ -31,8 +32,12 @@ export interface GameState {
   matchedPairs: number;
   totalPairs: number;
   moves: number;
+  totalMoves: number;
   loadingProgress: number;
   loadingMessage: string;
+  hp: number;
+  maxHp: number;
+  consecutiveMisses: number;
 }
 
 export interface StageConfig {
