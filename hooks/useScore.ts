@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useWriteContract, usePublicClient, useChainId, useSwitchChain } from "wagmi";
+import { useWriteContract, usePublicClient, useChainId, useSwitchChain, useAccount } from "wagmi";
 import { base } from "wagmi/chains";
 import { MEMORY_GAME_ABI, CONTRACT_ADDRESS } from "@/lib/constants";
+import type { BaseError } from "viem";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -17,6 +18,7 @@ export function useScore() {
   const publicClient = usePublicClient();
   const chainId = useChainId();
   const { switchChainAsync } = useSwitchChain();
+  const { address } = useAccount();
 
   const recordScore = useCallback(
     async (stage: number, moves: number): Promise<boolean> => {
@@ -30,16 +32,25 @@ export function useScore() {
       }
 
       try {
-        // Best-effort explicit chain switch (MetaMask etc.)
-        // Wrapped in its own try-catch so Farcaster/connectors that don't
-        // support switchChain don't abort the transaction.
+        // Best-effort chain switch before submitting
         if (chainId !== base.id) {
           try {
             await switchChainAsync({ chainId: base.id });
           } catch {
-            // Connector may not support switchChain; wagmi will handle it
-            // via the chainId field on writeContractAsync below.
+            // Connector may not support switchChain; continue anyway
           }
+        }
+
+        // Simulate first to catch contract reverts (cooldown, invalid args, etc.)
+        // before showing the wallet prompt. Gives specific revert reasons.
+        if (publicClient && address) {
+          await publicClient.simulateContract({
+            address: CONTRACT_ADDRESS,
+            abi: MEMORY_GAME_ABI,
+            functionName: "recordGame",
+            args: [stage, moves],
+            account: address,
+          });
         }
 
         setStatus("sending");
@@ -48,10 +59,8 @@ export function useScore() {
           abi: MEMORY_GAME_ABI,
           functionName: "recordGame",
           args: [stage, moves],
-          chainId: base.id, // wagmi v2: triggers wallet chain switch if needed
         });
 
-        // Wait for the transaction to be mined (1 confirmation)
         setStatus("confirming");
         if (publicClient) {
           await publicClient.waitForTransactionReceipt({ hash, confirmations: 1 });
@@ -60,13 +69,18 @@ export function useScore() {
         setStatus("confirmed");
         return true;
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Transaction failed";
+        console.error("[useScore] recordScore error:", err);
+        // viem BaseError has a concise shortMessage; fall back to first line of message
+        const viemErr = err as BaseError;
+        const msg =
+          viemErr.shortMessage ||
+          (err instanceof Error ? err.message.split("\n")[0] : "Transaction failed");
         setError(msg);
         setStatus("error");
         return false;
       }
     },
-    [writeContractAsync, publicClient, chainId, switchChainAsync]
+    [writeContractAsync, publicClient, chainId, switchChainAsync, address]
   );
 
   const reset = useCallback(() => {

@@ -8,11 +8,14 @@ interface GameOverProps {
   totalMoves: number;
   scoreStatus: ScoreStatus;
   recordError: string | null;
+  onRecordScore: () => void;
 }
 
-export function GameOver({ stage, totalMoves, scoreStatus, recordError }: GameOverProps) {
+export function GameOver({ stage, totalMoves, scoreStatus, recordError, onRecordScore }: GameOverProps) {
   const { t } = useT();
   const isRecording = scoreStatus === "sending" || scoreStatus === "confirming";
+  const hasRecorded = scoreStatus === "confirmed" || scoreStatus === "skipped";
+  const showRecordButton = !hasRecorded;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background px-6 text-center font-mono voxel-grid">
@@ -35,18 +38,8 @@ export function GameOver({ stage, totalMoves, scoreStatus, recordError }: GameOv
         </div>
       </div>
 
-      {/* On-chain status */}
-      {scoreStatus === "sending" ? (
-        <div className="flex items-center gap-2 text-purple-400 text-xs mb-4 uppercase tracking-widest">
-          <span className="animate-spin">⟳</span>
-          <span>{t.gameOver.sendingTx}</span>
-        </div>
-      ) : scoreStatus === "confirming" ? (
-        <div className="flex items-center gap-2 text-purple-400 text-xs mb-4 uppercase tracking-widest">
-          <span className="animate-spin">⟳</span>
-          <span>{t.gameOver.confirmingTx}</span>
-        </div>
-      ) : scoreStatus === "confirmed" ? (
+      {/* On-chain status (completion/error states) */}
+      {scoreStatus === "confirmed" ? (
         <div className="text-purple-400 text-xs mb-4 tracking-widest">
           {t.gameOver.recorded}
         </div>
@@ -55,10 +48,32 @@ export function GameOver({ stage, totalMoves, scoreStatus, recordError }: GameOv
           {t.gameOver.offline}
         </div>
       ) : recordError ? (
-        <div className="text-white/50 text-xs mb-4 tracking-widest">
-          {t.gameOver.failed}
+        <div className="mb-4 w-full max-w-xs text-left">
+          <p className="text-red-400 text-xs tracking-widest mb-1">{t.gameOver.failed}</p>
+          <p className="text-white/30 text-xs break-all leading-relaxed">
+            {recordError.length > 120 ? recordError.slice(0, 120) + "…" : recordError}
+          </p>
         </div>
       ) : null}
+
+      {/* Record Score button */}
+      {showRecordButton && (
+        <button
+          onClick={onRecordScore}
+          disabled={isRecording}
+          className="w-full max-w-xs py-4 bg-surface border border-purple-500/60 text-purple-400 font-black text-base uppercase tracking-widest
+            hover:bg-purple-500/10 hover:border-purple-400 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+        >
+          {isRecording ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">⟳</span>
+              {scoreStatus === "sending" ? t.gameOver.sendingTx : t.gameOver.confirmingTx}
+            </span>
+          ) : (
+            t.gameOver.recordScore
+          )}
+        </button>
+      )}
 
       {/* Restart button */}
       <button

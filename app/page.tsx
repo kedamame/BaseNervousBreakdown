@@ -36,46 +36,30 @@ export default function Home() {
   const { recordScore, status: scoreStatus, error: recordError, reset: resetScore } =
     useScore();
 
-  // Show wallet connect UI if not connected after a short delay
-  const [showWalletConnect, setShowWalletConnect] = useState(false);
+  // gameStarted: true only after user explicitly clicks "Start Game"
+  const [gameStarted, setGameStarted] = useState(false);
   const hasInitialized = useRef(false);
 
-  // Initialize Farcaster SDK and attempt auto-connect
+  // Initialize Farcaster SDK and attempt auto-connect (Farcaster client only)
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
 
     const init = async () => {
-      // Try Farcaster auto-connect first
+      // Try Farcaster auto-connect (no-op in browser)
       connect({ connector: farcasterMiniApp() });
-      // Signal Farcaster to hide splash screen regardless
-      await sdk.actions.ready();
+      // Signal Farcaster to hide splash screen
+      try { await sdk.actions.ready(); } catch { /* not in Farcaster */ }
     };
 
     init();
-
-    // If still not connected after 2.5s, show wallet selection UI
-    const timer = setTimeout(() => {
-      if (!isConnected) setShowWalletConnect(true);
-    }, 2500);
-
-    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Hide wallet connect UI once connected
+  // Reset gameStarted if wallet disconnects mid-session
   useEffect(() => {
-    if (isConnected) setShowWalletConnect(false);
+    if (!isConnected) setGameStarted(false);
   }, [isConnected]);
-
-  // Start Stage 1 once wallet is connected
-  const hasStartedGame = useRef(false);
-  useEffect(() => {
-    if (!isConnected || !address || hasStartedGame.current) return;
-    hasStartedGame.current = true;
-    beginStage(1, address);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, address]);
 
   const beginStage = useCallback(
     async (stage: number, walletAddress: string) => {
@@ -90,16 +74,15 @@ export default function Home() {
     [loadAssetsForStage, startStage, prefetchForNextStage]
   );
 
-  // Game over: submit score once (only when HP reaches 0)
-  const hasRecordedGameOver = useRef(false);
-  useEffect(() => {
-    if (gameState.status === "game_over" && !hasRecordedGameOver.current) {
-      hasRecordedGameOver.current = true;
-      const finalMoves = gameState.totalMoves + gameState.moves;
-      recordScore(gameState.stage, finalMoves);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState.status]);
+  const handleStartGame = useCallback(() => {
+    if (!address) return;
+    setGameStarted(true);
+    beginStage(1, address);
+  }, [address, beginStage]);
+
+  const handleRecordGameOver = useCallback(() => {
+    recordScore(gameState.stage, gameState.totalMoves + gameState.moves);
+  }, [recordScore, gameState.stage, gameState.totalMoves, gameState.moves]);
 
   const handleNextStage = useCallback(() => {
     resetScore();
@@ -114,21 +97,21 @@ export default function Home() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
-  // Wallet connect screen (browser fallback)
-  if (showWalletConnect && !isConnected) {
-    return <WalletConnect />;
+  // Wallet connect / Start screen (shown until user explicitly starts)
+  if (!gameStarted) {
+    return (
+      <WalletConnect
+        onStart={isConnected && address ? handleStartGame : undefined}
+      />
+    );
   }
 
-  // Asset loading screen
-  if (!isConnected || gameState.status === "loading") {
+  // Asset loading screen (after Start is pressed)
+  if (gameState.status === "loading") {
     return (
       <LoadingScreen
         progress={alchemyState.progress}
-        message={
-          !isConnected
-            ? t.loading.connectingWallet
-            : alchemyState.message || t.loading.loading
-        }
+        message={alchemyState.message || t.loading.loading}
         stage={gameState.stage}
       />
     );
@@ -142,6 +125,7 @@ export default function Home() {
         totalMoves={gameState.totalMoves + gameState.moves}
         scoreStatus={scoreStatus}
         recordError={recordError}
+        onRecordScore={handleRecordGameOver}
       />
     );
   }

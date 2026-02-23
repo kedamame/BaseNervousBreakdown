@@ -27,6 +27,9 @@ const en = {
     coinbase: "Coinbase Wallet",
     connecting: "Connecting...",
     detected: "Detected",
+    connected: "Connected",
+    startGame: "Start Game",
+    switchWallet: "Switch Wallet",
   },
   scoreboard: {
     stage: "Stage",
@@ -44,6 +47,7 @@ const en = {
     recorded: "✓ Score recorded on Base",
     offline: "~ Offline mode",
     failed: "⚠ Score recording failed",
+    recordScore: "Record Score on Base",
     restart: "Restart",
   },
   stageComplete: {
@@ -87,6 +91,9 @@ const ja: typeof en = {
     coinbase: "Coinbase Wallet",
     connecting: "接続中...",
     detected: "検出済み",
+    connected: "接続済み",
+    startGame: "ゲームスタート",
+    switchWallet: "ウォレットを切替",
   },
   scoreboard: {
     stage: "Stage",
@@ -104,6 +111,7 @@ const ja: typeof en = {
     recorded: "✓ スコアをBaseに記録しました",
     offline: "～ オフラインモード",
     failed: "⚠ スコアの記録に失敗",
+    recordScore: "スコアをBaseに記録",
     restart: "リスタート",
   },
   stageComplete: {
