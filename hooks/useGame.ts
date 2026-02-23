@@ -83,7 +83,9 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       const [idA, idB] = state.flippedCards;
       const cardA = state.cards.find((c) => c.id === idA)!;
       const cardB = state.cards.find((c) => c.id === idB)!;
-      const isMatch = cardA.pairId === cardB.pairId;
+      // Hearts match with any other heart card
+      const isMatch = cardA.pairId === cardB.pairId ||
+        (cardA.image.type === "heart" && cardB.image.type === "heart");
       const newMoves = state.moves + 1;
 
       const updatedCards = state.cards.map((c) => {
