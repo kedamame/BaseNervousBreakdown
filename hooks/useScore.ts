@@ -101,9 +101,12 @@ export function useScore() {
 
       try {
         // Switch to Base right before sending the TX.
+        // Farcaster mini apps are always on Base — the connector's wallet_switchEthereumChain
+        // may throw a non-TypeError even when already on Base, so skip switching for it.
         // window.ethereum fallback is only used for injected connectors (Rabby/MetaMask).
         const isInjected = connector?.type === "injected";
-        if (chainId !== base.id) {
+        const isFarcaster = connector?.type === "farcasterMiniApp";
+        if (!isFarcaster && chainId !== base.id) {
           setStatus("switching_chain");
           await switchToBase(chainId, () => switchChainAsync({ chainId: base.id }), isInjected);
         }

@@ -52,9 +52,11 @@ export function WalletConnect({ onStart, onLeaderboard }: WalletConnectProps) {
         await switchChainAsync({ chainId: base.id });
         return;
       } catch (originalErr) {
-        // TypeError = connector doesn't implement getChainId/switchChain
-        // (e.g. Farcaster miniApp connector). Not a user-facing error — skip.
+        // TypeError = connector doesn't implement getChainId/switchChain — skip silently.
         if (originalErr instanceof TypeError) return;
+        // Farcaster mini app is always on Base. Its provider may throw on
+        // wallet_switchEthereumChain even when already on Base — treat as non-fatal.
+        if (connector?.type === "farcasterMiniApp") return;
         // window.ethereum fallback is only safe for injected connectors
         // (Rabby/MetaMask), where window.ethereum IS the connected wallet.
         if (connector?.type !== "injected") throw originalErr;
