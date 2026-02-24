@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useRef, useState } from "react";
-import { useAccount, useConnect } from "wagmi";
-import { farcasterMiniApp } from "@farcaster/miniapp-wagmi-connector";
+import { useAccount, useConnect, useConnectors } from "wagmi";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { useGame } from "@/hooks/useGame";
 import { useAlchemy } from "@/hooks/useAlchemy";
@@ -21,6 +20,7 @@ import { getStageConfig } from "@/lib/gameLogic";
 export default function Home() {
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
+  const connectors = useConnectors();
   const { t } = useT();
 
   const {
@@ -48,8 +48,16 @@ export default function Home() {
     hasInitialized.current = true;
 
     const init = async () => {
-      // Try Farcaster auto-connect (no-op in browser)
-      connect({ connector: farcasterMiniApp() });
+      // Auto-connect using the pre-registered Farcaster connector from wagmiConfig.
+      // IMPORTANT: Do NOT call farcasterMiniApp() here — that creates a second connector
+      // instance with a different UID. After page reload wagmi's reconnect would restore
+      // the stub { id, name, type, uid } for that UID, and subsequent calls to
+      // writeContractAsync would fail with "getChainId is not a function" because the
+      // stub has no methods. Using the already-registered connector avoids this.
+      const farcasterConnector = connectors.find(c => c.type === "farcasterMiniApp");
+      if (farcasterConnector) {
+        connect({ connector: farcasterConnector });
+      }
       // Signal Farcaster to hide splash screen
       try { await sdk.actions.ready(); } catch { /* not in Farcaster */ }
     };
