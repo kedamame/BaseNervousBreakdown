@@ -12,6 +12,7 @@ import { LoadingScreen } from "@/components/Game/LoadingScreen";
 import { GameBoard } from "@/components/Game/GameBoard";
 import { StageComplete } from "@/components/Game/StageComplete";
 import { GameOver } from "@/components/Game/GameOver";
+import { Leaderboard } from "@/components/Game/Leaderboard";
 import { ScoreBoard } from "@/components/ui/ScoreBoard";
 import { WalletConnect } from "@/components/ui/WalletConnect";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
@@ -38,6 +39,7 @@ export default function Home() {
 
   // gameStarted: true only after user explicitly clicks "Start Game"
   const [gameStarted, setGameStarted] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const hasInitialized = useRef(false);
 
   // Initialize Farcaster SDK and attempt auto-connect (Farcaster client only)
@@ -100,11 +102,17 @@ export default function Home() {
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
+  // Leaderboard overlay (accessible from WalletConnect and GameOver screens)
+  if (showLeaderboard) {
+    return <Leaderboard onBack={() => setShowLeaderboard(false)} />;
+  }
+
   // Wallet connect / Start screen (shown until user explicitly starts)
   if (!gameStarted) {
     return (
       <WalletConnect
         onStart={isConnected && address ? handleStartGame : undefined}
+        onLeaderboard={() => setShowLeaderboard(true)}
       />
     );
   }
@@ -129,6 +137,7 @@ export default function Home() {
         scoreStatus={scoreStatus}
         recordError={recordError}
         onRecordScore={handleRecordGameOver}
+        onLeaderboard={() => setShowLeaderboard(true)}
       />
     );
   }

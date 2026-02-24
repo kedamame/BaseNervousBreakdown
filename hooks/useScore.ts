@@ -8,7 +8,7 @@ import type { BaseError } from "viem";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-export type ScoreStatus = "idle" | "sending" | "confirming" | "confirmed" | "skipped" | "error";
+export type ScoreStatus = "idle" | "switching_chain" | "sending" | "confirming" | "confirmed" | "skipped" | "error";
 
 type EthProvider = { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
 
@@ -30,6 +30,13 @@ async function switchToBase(
     await wagmiSwitch();
     return;
   } catch (originalErr) {
+    // TypeError means the connector doesn't implement getChainId / switchChain
+    // (e.g. @farcaster/miniapp-wagmi-connector). This is a connector compatibility
+    // issue, not a user-facing error. Skip switching and let the TX attempt proceed —
+    // the provider will reject with a chain mismatch if the wallet is actually on the
+    // wrong chain.
+    if (originalErr instanceof TypeError) return;
+
     // window.ethereum fallback is only safe when using an injected connector
     // (where window.ethereum IS the connected wallet). For non-injected
     // connectors (Coinbase, WalletConnect, Farcaster), propagate the error.
@@ -93,10 +100,13 @@ export function useScore() {
       }
 
       try {
-        // Ensure we're on Base before submitting.
+        // Switch to Base right before sending the TX.
         // window.ethereum fallback is only used for injected connectors (Rabby/MetaMask).
         const isInjected = connector?.type === "injected";
-        await switchToBase(chainId, () => switchChainAsync({ chainId: base.id }), isInjected);
+        if (chainId !== base.id) {
+          setStatus("switching_chain");
+          await switchToBase(chainId, () => switchChainAsync({ chainId: base.id }), isInjected);
+        }
 
         // Simulate first to catch contract reverts (cooldown, invalid args, etc.)
         if (publicClient && address) {
@@ -146,7 +156,7 @@ export function useScore() {
   return {
     recordScore,
     status,
-    isPending: status === "sending" || status === "confirming",
+    isPending: status === "switching_chain" || status === "sending" || status === "confirming",
     isSuccess: status === "confirmed" || status === "skipped",
     isSkipped: status === "skipped",
     error,

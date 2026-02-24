@@ -9,11 +9,13 @@ interface GameOverProps {
   scoreStatus: ScoreStatus;
   recordError: string | null;
   onRecordScore: () => void;
+  onLeaderboard: () => void;
 }
 
-export function GameOver({ stage, totalMoves, scoreStatus, recordError, onRecordScore }: GameOverProps) {
+export function GameOver({ stage, totalMoves, scoreStatus, recordError, onRecordScore, onLeaderboard }: GameOverProps) {
   const { t } = useT();
-  const isRecording = scoreStatus === "sending" || scoreStatus === "confirming";
+  const isSwitchingChain = scoreStatus === "switching_chain";
+  const isRecording = isSwitchingChain || scoreStatus === "sending" || scoreStatus === "confirming";
   const hasRecorded = scoreStatus === "confirmed" || scoreStatus === "skipped";
   const showRecordButton = !hasRecorded;
 
@@ -38,7 +40,7 @@ export function GameOver({ stage, totalMoves, scoreStatus, recordError, onRecord
         </div>
       </div>
 
-      {/* On-chain status (completion/error states) */}
+      {/* On-chain status */}
       {scoreStatus === "confirmed" ? (
         <div className="text-purple-400 text-xs mb-4 tracking-widest">
           {t.gameOver.recorded}
@@ -67,13 +69,27 @@ export function GameOver({ stage, totalMoves, scoreStatus, recordError, onRecord
           {isRecording ? (
             <span className="flex items-center justify-center gap-2">
               <span className="animate-spin">⟳</span>
-              {scoreStatus === "sending" ? t.gameOver.sendingTx : t.gameOver.confirmingTx}
+              {isSwitchingChain
+                ? t.gameOver.switchingChain
+                : scoreStatus === "sending"
+                ? t.gameOver.sendingTx
+                : t.gameOver.confirmingTx}
             </span>
           ) : (
             t.gameOver.recordScore
           )}
         </button>
       )}
+
+      {/* Leaderboard button */}
+      <button
+        onClick={onLeaderboard}
+        disabled={isRecording}
+        className="w-full max-w-xs py-3 bg-surface border border-white/15 text-white/50 font-black text-xs uppercase tracking-widest
+          hover:border-purple-500/40 hover:text-white/70 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed mb-3"
+      >
+        {t.leaderboard.view}
+      </button>
 
       {/* Restart button */}
       <button

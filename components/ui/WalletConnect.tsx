@@ -8,6 +8,7 @@ import { LanguageToggle } from "./LanguageToggle";
 
 interface WalletConnectProps {
   onStart?: () => void;
+  onLeaderboard?: () => void;
 }
 
 // Map connector IDs to display info
@@ -24,7 +25,7 @@ function getConnectorInfo(id: string, name: string, t: ReturnType<typeof useT>["
   return { label: name, icon: "■" };
 }
 
-export function WalletConnect({ onStart }: WalletConnectProps) {
+export function WalletConnect({ onStart, onLeaderboard }: WalletConnectProps) {
   const { t } = useT();
   const { connect, isPending, variables } = useConnect();
   const { disconnect } = useDisconnect();
@@ -51,6 +52,9 @@ export function WalletConnect({ onStart }: WalletConnectProps) {
         await switchChainAsync({ chainId: base.id });
         return;
       } catch (originalErr) {
+        // TypeError = connector doesn't implement getChainId/switchChain
+        // (e.g. Farcaster miniApp connector). Not a user-facing error — skip.
+        if (originalErr instanceof TypeError) return;
         // window.ethereum fallback is only safe for injected connectors
         // (Rabby/MetaMask), where window.ethereum IS the connected wallet.
         if (connector?.type !== "injected") throw originalErr;
@@ -194,6 +198,17 @@ export function WalletConnect({ onStart }: WalletConnectProps) {
                 {t.walletConnect.startGame}
               </button>
 
+              {onLeaderboard && (
+                <button
+                  onClick={onLeaderboard}
+                  className="w-full py-3 bg-surface border border-white/15 text-white/50
+                    font-black text-xs uppercase tracking-widest
+                    hover:border-purple-500/40 hover:text-white/70 active:scale-95 transition-all mb-3"
+                >
+                  {t.leaderboard.view}
+                </button>
+              )}
+
               <button
                 onClick={() => disconnect()}
                 className="w-full py-3 bg-surface border border-white/15 text-white/40
@@ -244,6 +259,17 @@ export function WalletConnect({ onStart }: WalletConnectProps) {
               );
             })}
           </div>
+
+          {onLeaderboard && (
+            <button
+              onClick={onLeaderboard}
+              className="w-full py-3 mt-3 bg-surface border border-white/10 text-white/40
+                font-black text-xs uppercase tracking-widest
+                hover:border-purple-500/40 hover:text-white/60 active:scale-95 transition-all"
+            >
+              {t.leaderboard.view}
+            </button>
+          )}
         </div>
       )}
     </div>
