@@ -12,70 +12,68 @@ export type ScoreStatus = "idle" | "switching_chain" | "sending" | "confirming" 
 
 type EthProvider = { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
 
-/** Switch to Base Mainnet.
- *  1. Tries wagmi switchChainAsync first (correct for the connected connector).
- *  2. For injected wallets (Rabby/MetaMask) only: falls back to window.ethereum
- *     direct call if wagmi fails (handles edge cases where wagmi path doesn't
- *     trigger the popup for injected connectors).
- *  After wallet_addEthereumChain (4902) a follow-up switch is issued explicitly. */
-async function switchToBase(
-  chainId: number,
-  wagmiSwitch: () => Promise<unknown>,
-  isInjectedConnector: boolean
-): Promise<void> {
-  if (chainId === base.id) return;
+const BASE_CHAIN_HEX = "0x2105"; // 8453
 
-  // Primary: use wagmi to switch via the connected connector
-  try {
-    await wagmiSwitch();
-    return;
-  } catch (originalErr) {
-    // TypeError means the connector doesn't implement getChainId / switchChain
-    // (e.g. @farcaster/miniapp-wagmi-connector). This is a connector compatibility
-    // issue, not a user-facing error. Skip switching and let the TX attempt proceed —
-    // the provider will reject with a chain mismatch if the wallet is actually on the
-    // wrong chain.
-    if (originalErr instanceof TypeError) return;
-
-    // window.ethereum fallback is only safe when using an injected connector
-    // (where window.ethereum IS the connected wallet). For non-injected
-    // connectors (Coinbase, WalletConnect, Farcaster), propagate the error.
-    if (!isInjectedConnector) throw originalErr;
-  }
-
-  const provider = typeof window !== "undefined"
-    ? (window as Window & { ethereum?: EthProvider }).ethereum
-    : null;
-
-  if (!provider) throw new Error("Cannot switch to Base: no compatible wallet provider found");
-
+/** Attempt wallet_switchEthereumChain + 4902 fallback on the given provider. */
+async function switchProviderToBase(provider: EthProvider): Promise<void> {
   try {
     await provider.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: "0x2105" }], // Base Mainnet = 8453
+      params: [{ chainId: BASE_CHAIN_HEX }],
     });
   } catch (err) {
-    if ((err as { code?: number | string }).code == 4902) { // == handles both number and string "4902"
+    if ((err as { code?: number | string }).code == 4902) { // == handles both number and string
       // Base not in wallet yet — add it, then switch explicitly
       await provider.request({
         method: "wallet_addEthereumChain",
         params: [{
-          chainId: "0x2105",
+          chainId: BASE_CHAIN_HEX,
           chainName: "Base",
           nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
           rpcUrls: ["https://mainnet.base.org"],
           blockExplorerUrls: ["https://basescan.org"],
         }],
       });
-      // Explicitly switch after adding (some wallets don't auto-switch)
       await provider.request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: "0x2105" }],
+        params: [{ chainId: BASE_CHAIN_HEX }],
       });
     } else {
       throw err;
     }
   }
+}
+
+/** Switch to Base Mainnet.
+ *  1. Primary: wagmi switchChainAsync (works for all connector types; for EIP-6963
+ *     wallets like Rabby it uses the wallet's own provider, not window.ethereum).
+ *  2. Fallback (injected only): call wallet_switchEthereumChain via the connector's
+ *     own provider — avoids wagmi's changePromise race and also avoids calling the
+ *     wrong wallet when window.ethereum belongs to a different installed extension.
+ *  getConnectorProvider is only provided for injected connectors. */
+async function switchToBase(
+  wagmiSwitch: () => Promise<unknown>,
+  getConnectorProvider: (() => Promise<EthProvider | null>) | null,
+): Promise<void> {
+  // Primary: use wagmi to switch via the connected connector
+  try {
+    await wagmiSwitch();
+    return;
+  } catch (originalErr) {
+    // TypeError = connector stub without methods (shouldn't happen after connector fix,
+    // but keep as safety net). Proceed and let the TX attempt surface any real error.
+    if (originalErr instanceof TypeError) return;
+
+    // For non-injected connectors (Coinbase, etc.) there is no reliable direct fallback.
+    if (!getConnectorProvider) throw originalErr;
+  }
+
+  // Fallback: call wallet_switchEthereumChain directly via the connector's own provider.
+  // Using connector.getProvider() (not window.ethereum) is critical for EIP-6963 wallets
+  // like Rabby where window.ethereum may point to a different installed wallet extension.
+  const provider = await getConnectorProvider();
+  if (!provider) throw new Error("Cannot switch to Base: no wallet provider found");
+  await switchProviderToBase(provider);
 }
 
 export function useScore() {
@@ -100,15 +98,28 @@ export function useScore() {
       }
 
       try {
-        // Switch to Base right before sending the TX.
-        // Farcaster mini apps are always on Base — the connector's wallet_switchEthereumChain
-        // may throw a non-TypeError even when already on Base, so skip switching for it.
-        // window.ethereum fallback is only used for injected connectors (Rabby/MetaMask).
-        const isInjected = connector?.type === "injected";
         const isFarcaster = connector?.type === "farcasterMiniApp";
-        if (!isFarcaster && chainId !== base.id) {
-          setStatus("switching_chain");
-          await switchToBase(chainId, () => switchChainAsync({ chainId: base.id }), isInjected);
+        const isInjected = connector?.type === "injected";
+
+        if (!isFarcaster) {
+          // Re-query the actual chain directly from the connector rather than relying on
+          // wagmi's cached useChainId() value, which can lag behind the real wallet state
+          // (especially with EIP-6963 wallets like Rabby on first connect).
+          let actualChainId = chainId;
+          try { actualChainId = await connector!.getChainId(); } catch { /* use cached */ }
+
+          if (actualChainId !== base.id) {
+            setStatus("switching_chain");
+            // For injected connectors: pass a getProvider function so the fallback uses
+            // the connector's own EIP-6963 provider instead of window.ethereum (which may
+            // belong to a different installed wallet extension).
+            const getConnectorProvider = isInjected
+              ? async (): Promise<EthProvider | null> => {
+                  try { return (await connector!.getProvider()) as EthProvider; } catch { return null; }
+                }
+              : null;
+            await switchToBase(() => switchChainAsync({ chainId: base.id }), getConnectorProvider);
+          }
         }
 
         // Simulate first to catch contract reverts (cooldown, invalid args, etc.)

@@ -43,60 +43,59 @@ export function WalletConnect({ onStart, onLeaderboard }: WalletConnectProps) {
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
     : "";
 
+  type EthProvider = { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
+
+  const switchProviderToBase = async (provider: EthProvider) => {
+    try {
+      await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2105" }] });
+    } catch (err) {
+      if ((err as { code?: number | string }).code == 4902) {
+        await provider.request({
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: "0x2105",
+            chainName: "Base",
+            nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+            rpcUrls: ["https://mainnet.base.org"],
+            blockExplorerUrls: ["https://basescan.org"],
+          }],
+        });
+        await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2105" }] });
+      } else {
+        throw err;
+      }
+    }
+  };
+
   const handleSwitchToBase = async () => {
     setSwitchError(null);
     setIsSwitching(true);
     try {
-      // Primary: use wagmi to switch via the connected connector
+      // Primary: use wagmi (works for all connector types including EIP-6963 Rabby)
       try {
         await switchChainAsync({ chainId: base.id });
         return;
       } catch (originalErr) {
-        // TypeError = connector doesn't implement getChainId/switchChain — skip silently.
         if (originalErr instanceof TypeError) return;
-        // Farcaster mini app is always on Base. Its provider may throw on
-        // wallet_switchEthereumChain even when already on Base — treat as non-fatal.
+        // Farcaster is always on Base — treat switch errors as non-fatal
         if (connector?.type === "farcasterMiniApp") return;
-        // window.ethereum fallback is only safe for injected connectors
-        // (Rabby/MetaMask), where window.ethereum IS the connected wallet.
+        // For injected connectors: fall back to the connector's own provider.
+        // Do NOT use window.ethereum — for EIP-6963 wallets (Rabby) it may be a
+        // different installed extension (e.g. MetaMask).
         if (connector?.type !== "injected") throw originalErr;
       }
 
-      // Fallback for injected wallets: window.ethereum direct call
-      const provider = typeof window !== "undefined"
-        ? (window as Window & { ethereum?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> } }).ethereum
-        : null;
-
+      // Fallback: use the connector's own provider (EIP-6963-safe)
+      let provider: EthProvider | null = null;
+      try { provider = (await connector!.getProvider()) as EthProvider; } catch { /* ignore */ }
+      // Last resort: window.ethereum (only safe if a single wallet is installed)
       if (!provider) {
-        throw new Error("No compatible wallet provider to switch chains");
+        provider = (typeof window !== "undefined"
+          ? (window as Window & { ethereum?: EthProvider }).ethereum
+          : null) ?? null;
       }
-      try {
-        await provider.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0x2105" }], // Base Mainnet = 8453
-        });
-      } catch (err) {
-        // 4902 = chain not added to wallet (== handles both number and string "4902")
-        if ((err as { code?: number | string }).code == 4902) {
-          await provider.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: "0x2105",
-              chainName: "Base",
-              nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-              rpcUrls: ["https://mainnet.base.org"],
-              blockExplorerUrls: ["https://basescan.org"],
-            }],
-          });
-          // Explicitly switch after adding (some wallets don't auto-switch)
-          await provider.request({
-            method: "wallet_switchEthereumChain",
-            params: [{ chainId: "0x2105" }],
-          });
-        } else {
-          throw err;
-        }
-      }
+      if (!provider) throw new Error("No compatible wallet provider to switch chains");
+      await switchProviderToBase(provider);
     } catch (err) {
       const msg = err instanceof Error ? err.message.split("\n")[0] : "Failed to switch network";
       setSwitchError(msg);
