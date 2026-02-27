@@ -102,8 +102,9 @@ export async function GET() {
 
     return NextResponse.json({ entries });
   } catch (err) {
-    console.error("[/api/leaderboard] error:", err);
+    const rpcLabel = apiKey ? "Alchemy" : "public Base RPC";
+    console.error(`[/api/leaderboard] getLogs failed (${rpcLabel}):`, err);
     const msg = err instanceof Error ? err.message.split("\n")[0] : "Failed to fetch leaderboard";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: `${msg} (via ${rpcLabel})` }, { status: 500 });
   }
 }
