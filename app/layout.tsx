@@ -3,7 +3,7 @@ import "./globals.css";
 import { Web3Provider } from "@/components/providers/Web3Provider";
 import { I18nProvider } from "@/lib/i18n";
 
-const APP_URL = process.env.NEXT_PUBLIC_URL || "https://localhost:3000";
+const APP_URL = process.env.NEXT_PUBLIC_URL || "https://base-nervous-breakdown.vercel.app";
 const APP_NAME = "Base Memory";
 const APP_DESCRIPTION =
   "Memory Card Game on Base — play with your NFTs & tokens";
