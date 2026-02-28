@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { GameState } from "@/lib/types";
 import { getGridCols, getCardSize } from "@/lib/gameLogic";
+import { useT } from "@/lib/i18n";
 import { Card } from "./Card";
 
 interface GameBoardProps {
@@ -15,6 +16,7 @@ const DISPLAY_MS = 700;
 
 export function GameBoard({ gameState, onFlipCard, onCheckMatch }: GameBoardProps) {
   const { cards, flippedCards, status, stage } = gameState;
+  const { t } = useT();
 
   // Preload all card images before allowing interaction
   const [allImagesPreloaded, setAllImagesPreloaded] = useState(false);
@@ -94,7 +96,7 @@ export function GameBoard({ gameState, onFlipCard, onCheckMatch }: GameBoardProp
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-10 gap-3">
           <span className="animate-spin text-purple-400 text-3xl">⟳</span>
           <span className="text-white/50 text-xs font-mono uppercase tracking-widest">
-            画像を読み込み中...
+            {t.loading.preloadingImages}
           </span>
         </div>
       )}

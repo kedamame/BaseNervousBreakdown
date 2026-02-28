@@ -18,6 +18,7 @@ const en = {
     preparingCards: "Preparing cards...",
     loadedImages: (n: number) => `${n} images loaded`,
     preparingStage: (n: number) => `Preparing Stage ${n}...`,
+    preloadingImages: "Loading images...",
   },
   walletConnect: {
     title: "Connect Wallet",
@@ -99,6 +100,7 @@ const ja: typeof en = {
     preparingCards: "カードを準備中...",
     loadedImages: (n: number) => `${n}枚の画像を読み込みました`,
     preparingStage: (n: number) => `Stage ${n} を準備中...`,
+    preloadingImages: "画像を読み込み中...",
   },
   walletConnect: {
     title: "ウォレットを接続",
