@@ -1,85 +1,75 @@
 import { NextResponse } from "next/server";
-import { createPublicClient, http, parseAbiItem } from "viem";
-import { base } from "viem/chains";
+import { keccak256, toHex } from "viem";
 import { CONTRACT_ADDRESS } from "@/lib/constants";
+
+// Cache the response for 60 seconds (ISR-style) to avoid hammering Basescan
+export const revalidate = 60;
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-// Must match the deployed contract's event signature exactly.
-const GAME_COMPLETED_EVENT = parseAbiItem(
-  "event GameCompleted(address indexed player, uint32 stage, uint32 moves)"
-);
+// topic0 = keccak256("GameCompleted(address,uint32,uint32)")
+const GAME_COMPLETED_TOPIC0 = keccak256(toHex("GameCompleted(address,uint32,uint32)"));
 
-// Optional server-side env var: set to the contract deployment block number to
-// avoid scanning from genesis and to stay within public RPC range limits.
-// Example: CONTRACT_DEPLOY_BLOCK=28000000
-const DEPLOY_BLOCK = BigInt(process.env.CONTRACT_DEPLOY_BLOCK ?? 0);
-
-// Public RPCs typically reject getLogs requests spanning more than ~2 000 blocks.
-// We chunk the range and execute chunks in parallel to keep wall-clock time reasonable.
-// Note: Alchemy free tier limits eth_getLogs to only 10 blocks — not useful for historical
-// scans. Always use the public Base RPC (chunked) for leaderboard queries.
-const PUBLIC_CHUNK_SIZE = BigInt(1800);   // conservative, fits within most RPC limits
-const PUBLIC_PARALLEL_BATCH = 8;          // concurrent chunks per batch (avoid rate-limit)
+const DEPLOY_BLOCK = process.env.CONTRACT_DEPLOY_BLOCK ?? "0";
+const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY ?? "";
 
 export async function GET() {
   if (CONTRACT_ADDRESS === ZERO_ADDRESS) {
     return NextResponse.json({ entries: [] });
   }
 
-  // Always use public Base RPC with chunked getLogs.
-  // CONTRACT_DEPLOY_BLOCK narrows the scan to only blocks since deployment.
-  const client = createPublicClient({
-    chain: base,
-    transport: http("https://mainnet.base.org", { timeout: 20_000 }),
-  });
-
   try {
-    // Chunked parallel getLogs over public Base RPC
-    const rawLogs = await (async () => {
-      const latestBlock = await client.getBlockNumber();
-      const fromBlock = DEPLOY_BLOCK;
-      if (fromBlock > latestBlock) return [];
+    const keyParam = BASESCAN_API_KEY ? `&apikey=${BASESCAN_API_KEY}` : "";
+    const url =
+      `https://api.basescan.org/api?module=logs&action=getLogs` +
+      `&address=${CONTRACT_ADDRESS}` +
+      `&topic0=${GAME_COMPLETED_TOPIC0}` +
+      `&fromBlock=${DEPLOY_BLOCK}` +
+      `&toBlock=latest` +
+      `&page=1&offset=1000` +
+      keyParam;
 
-      const totalBlocks = latestBlock - fromBlock + BigInt(1);
-      const numChunks = Number(
-        (totalBlocks + PUBLIC_CHUNK_SIZE - BigInt(1)) / PUBLIC_CHUNK_SIZE
-      );
+    const res = await fetch(url, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) throw new Error(`Basescan HTTP ${res.status}`);
 
-      const allLogs: Awaited<ReturnType<typeof client.getLogs>> = [];
-      for (let i = 0; i < numChunks; i += PUBLIC_PARALLEL_BATCH) {
-        const batchSize = Math.min(PUBLIC_PARALLEL_BATCH, numChunks - i);
-        const chunkPromises = Array.from({ length: batchSize }, (_, j) => {
-          const start = fromBlock + BigInt(i + j) * PUBLIC_CHUNK_SIZE;
-          const end =
-            start + PUBLIC_CHUNK_SIZE - BigInt(1) > latestBlock
-              ? latestBlock
-              : start + PUBLIC_CHUNK_SIZE - BigInt(1);
-          return client.getLogs({
-            address: CONTRACT_ADDRESS,
-            event: GAME_COMPLETED_EVENT,
-            fromBlock: start,
-            toBlock: end,
-          });
-        });
-        const results = await Promise.all(chunkPromises);
-        allLogs.push(...results.flat());
+    const json = await res.json();
+
+    // status "0" with "No records found" is a valid empty result
+    if (json.status !== "1") {
+      if (json.message === "No records found") {
+        return NextResponse.json({ entries: [] });
       }
-      return allLogs;
-    })();
+      throw new Error(json.message ?? "Basescan API error");
+    }
 
-    type GameArgs = { player?: `0x${string}`; stage?: bigint; moves?: bigint };
+    type BasescanLog = { topics: string[]; data: string };
+    const logs: BasescanLog[] = Array.isArray(json.result) ? json.result : [];
 
     // Aggregate: best score per player (highest stage, fewest moves as tiebreaker)
     const bestByPlayer = new Map<string, { address: string; stage: number; moves: number }>();
-    for (const log of rawLogs) {
-      const { player, stage, moves } = ((log as unknown as { args?: GameArgs }).args ?? {});
-      if (!player || stage === undefined || moves === undefined) continue;
-      const s = Number(stage);
-      const m = Number(moves);
+
+    for (const log of logs) {
+      if (!log.topics || log.topics.length < 2) continue;
+
+      // player is indexed → topics[1], left-padded to 32 bytes
+      const player = `0x${log.topics[1].slice(-40)}` as `0x${string}`;
+
+      // data = abi.encode(uint32 stage, uint32 moves) → 32 bytes each
+      const data = log.data.startsWith("0x") ? log.data.slice(2) : log.data;
+      const stage = parseInt(data.slice(0, 64), 16);
+      const moves = parseInt(data.slice(64, 128), 16);
+
+      if (!player || isNaN(stage) || isNaN(moves)) continue;
+
       const existing = bestByPlayer.get(player);
-      if (!existing || s > existing.stage || (s === existing.stage && m < existing.moves)) {
-        bestByPlayer.set(player, { address: player, stage: s, moves: m });
+      if (
+        !existing ||
+        stage > existing.stage ||
+        (stage === existing.stage && moves < existing.moves)
+      ) {
+        bestByPlayer.set(player, { address: player, stage, moves });
       }
     }
 
@@ -89,8 +79,9 @@ export async function GET() {
 
     return NextResponse.json({ entries });
   } catch (err) {
-    console.error("[/api/leaderboard] getLogs failed:", err);
-    const msg = err instanceof Error ? err.message.split("\n")[0] : "Failed to fetch leaderboard";
+    console.error("[/api/leaderboard] Basescan fetch failed:", err);
+    const msg =
+      err instanceof Error ? err.message.split("\n")[0] : "Failed to fetch leaderboard";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
