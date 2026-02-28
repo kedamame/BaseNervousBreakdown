@@ -14,7 +14,6 @@ import { GameOver } from "@/components/Game/GameOver";
 import { Leaderboard } from "@/components/Game/Leaderboard";
 import { ScoreBoard } from "@/components/ui/ScoreBoard";
 import { WalletConnect } from "@/components/ui/WalletConnect";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { getStageConfig } from "@/lib/gameLogic";
 
 export default function Home() {
@@ -183,10 +182,6 @@ export default function Home() {
         onFlipCard={flipCard}
         onCheckMatch={checkMatch}
       />
-      {/* Language toggle — fixed bottom-right during gameplay */}
-      <div className="fixed bottom-3 right-3 z-50">
-        <LanguageToggle />
-      </div>
     </main>
   );
 }

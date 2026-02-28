@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Web3Provider } from "@/components/providers/Web3Provider";
 import { I18nProvider } from "@/lib/i18n";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
 
 const APP_URL = process.env.NEXT_PUBLIC_URL || "https://localhost:3000";
 const APP_NAME = "Base Memory";
@@ -44,6 +45,9 @@ export default function RootLayout({
       <body>
         <I18nProvider>
           <Web3Provider>{children}</Web3Provider>
+          <div className="fixed bottom-3 right-3 z-50">
+            <LanguageToggle />
+          </div>
         </I18nProvider>
       </body>
     </html>
