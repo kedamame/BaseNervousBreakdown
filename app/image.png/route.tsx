@@ -2,107 +2,115 @@ import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
 
-type S = "down" | "matched" | "flipping";
-
-const CW = 108;
-const CH = 128;
-const GAP = 12;
-const COLS = 4;
-
-// 4×3 = 12 cards: most face-down, one matched ★ pair, one flipping ◆ pair
-const GRID: { s: S }[] = [
-  { s: "down" },    { s: "down" },     { s: "matched" },  { s: "down" },
-  { s: "flipping" },{ s: "down" },     { s: "down" },     { s: "flipping" },
-  { s: "down" },    { s: "matched" },  { s: "down" },     { s: "down" },
-];
-
-function Card({ s }: { s: S }) {
-  const isMatched = s === "matched";
-  const isFlipping = s === "flipping";
-  const isFaceUp = isMatched || isFlipping;
-
-  const bg = isMatched
-    ? "rgba(192,132,252,0.2)"
-    : isFlipping
-    ? "rgba(96,165,250,0.12)"
-    : "#0b0b18";
-  const border = isMatched ? "#c084fc" : isFlipping ? "#60a5fa" : "#252538";
-  const shadow = isMatched
-    ? "0 0 20px rgba(192,132,252,0.6), 0 0 6px rgba(192,132,252,0.3)"
-    : "none";
-
+// Card face-down back design
+function CardBack() {
   return (
     <div
       style={{
-        width: CW,
-        height: CH,
-        background: bg,
-        border: `2.5px solid ${border}`,
-        boxShadow: shadow,
+        width: 100,
+        height: 120,
+        background: "#0c0c1a",
+        border: "2px solid #252540",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        position: "relative",
         flexShrink: 0,
       }}
     >
-      {isFaceUp ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 44, color: isMatched ? "#c084fc" : "#60a5fa", display: "flex" }}>
-            {isMatched ? "★" : "◆"}
-          </span>
-          {isMatched && (
-            <div style={{ fontSize: 11, color: "#c084fc", letterSpacing: 2, display: "flex" }}>
-              MATCH
-            </div>
-          )}
-        </div>
-      ) : (
-        // Face-down: 3×3 dot grid (card back)
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, opacity: 0.3 }}>
-          {[0, 1, 2].map((r) => (
-            <div key={r} style={{ display: "flex", gap: 8 }}>
-              {[0, 1, 2].map((c) => (
-                <div
-                  key={c}
-                  style={{ width: 8, height: 8, borderRadius: "50%", background: "#a0a0c8", display: "flex" }}
-                />
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 7, opacity: 0.28 }}>
+        {[0, 1, 2].map((r) => (
+          <div key={r} style={{ display: "flex", gap: 7 }}>
+            {[0, 1, 2].map((c) => (
+              <div
+                key={c}
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: "50%",
+                  background: "#9090c0",
+                  display: "flex",
+                }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-      {isMatched && (
-        <div
-          style={{
-            position: "absolute",
-            top: -11,
-            right: -11,
-            width: 24,
-            height: 24,
-            borderRadius: "50%",
-            background: "#c084fc",
-            color: "#fff",
-            fontSize: 13,
-            fontWeight: 900,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          ✓
-        </div>
-      )}
+// Card face-up: matched (glowing)
+function CardMatched({ symbol }: { symbol: string }) {
+  return (
+    <div
+      style={{
+        width: 100,
+        height: 120,
+        background: "rgba(192,132,252,0.18)",
+        border: "2.5px solid #c084fc",
+        boxShadow: "0 0 22px rgba(192,132,252,0.55)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+        position: "relative",
+      }}
+    >
+      <span style={{ fontSize: 42, color: "#c084fc", display: "flex" }}>{symbol}</span>
+      <span style={{ fontSize: 10, color: "#c084fc", letterSpacing: 2, marginTop: 4, display: "flex" }}>
+        MATCH
+      </span>
+      {/* checkmark badge */}
+      <div
+        style={{
+          position: "absolute",
+          top: -10,
+          right: -10,
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          background: "#c084fc",
+          color: "#fff",
+          fontSize: 12,
+          fontWeight: 900,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        ✓
+      </div>
+    </div>
+  );
+}
+
+// Card face-up: flipping (not yet matched)
+function CardFlipping({ symbol }: { symbol: string }) {
+  return (
+    <div
+      style={{
+        width: 100,
+        height: 120,
+        background: "rgba(96,165,250,0.1)",
+        border: "2px solid #60a5fa",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ fontSize: 42, color: "#60a5fa", display: "flex" }}>{symbol}</span>
+      <span style={{ fontSize: 10, color: "#60a5fa60", letterSpacing: 2, marginTop: 4, display: "flex" }}>
+        ?
+      </span>
     </div>
   );
 }
 
 export async function GET() {
-  const rows: { s: S }[][] = [];
-  for (let i = 0; i < GRID.length; i += COLS) {
-    rows.push(GRID.slice(i, i + COLS));
-  }
+  const GAP = 10;
 
   return new ImageResponse(
     (
@@ -113,121 +121,146 @@ export async function GET() {
           background: "#030305",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
           fontFamily: "ui-monospace, Menlo, Monaco, Consolas, monospace",
           position: "relative",
           overflow: "hidden",
         }}
       >
-        {/* Dot grid BG */}
+        {/* Background dot grid */}
         <div
           style={{
             position: "absolute",
             inset: 0,
-            backgroundImage: "radial-gradient(circle, #1c1c30 1.5px, transparent 1.5px)",
-            backgroundSize: "34px 34px",
-            opacity: 0.55,
+            backgroundImage: "radial-gradient(circle, #1a1a2e 1.5px, transparent 1.5px)",
+            backgroundSize: "32px 32px",
+            opacity: 0.5,
             display: "flex",
           }}
         />
 
-        {/* Left: text block */}
+        {/* ── Left: title text ── */}
         <div
           style={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
             alignItems: "flex-start",
-            paddingLeft: 72,
-            paddingRight: 40,
+            paddingLeft: 64,
             zIndex: 1,
           }}
         >
+          {/* Genre tag */}
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: 8,
-              background: "rgba(192,132,252,0.12)",
-              border: "1px solid rgba(192,132,252,0.35)",
-              padding: "5px 14px",
-              marginBottom: 28,
+              border: "1px solid rgba(192,132,252,0.4)",
+              padding: "4px 14px",
+              marginBottom: 24,
             }}
           >
-            <span style={{ color: "#c084fc", fontSize: 14, letterSpacing: 3, display: "flex" }}>
+            <span style={{ color: "#c084fc", fontSize: 13, letterSpacing: 3, display: "flex" }}>
               MEMORY CARD GAME
             </span>
           </div>
 
+          {/* JP title — the star of the show */}
           <div
             style={{
               color: "#ffffff",
-              fontSize: 80,
+              fontSize: 86,
               fontWeight: 900,
-              letterSpacing: "-3px",
+              letterSpacing: "-4px",
               lineHeight: 1,
-              marginBottom: 10,
+              marginBottom: 12,
               display: "flex",
             }}
           >
             神経衰弱
           </div>
 
+          {/* EN subtitle */}
           <div
             style={{
               color: "#c084fc",
-              fontSize: 30,
-              fontWeight: 900,
-              letterSpacing: "3px",
-              marginBottom: 36,
+              fontSize: 28,
+              fontWeight: 700,
+              letterSpacing: "4px",
+              marginBottom: 40,
               display: "flex",
             }}
           >
             Base Memory
           </div>
 
+          {/* Gameplay bullets */}
           {[
-            "カードをめくってペアを探す",
-            "NFT・トークンが絵柄に",
-            "Baseチェーン上で記録",
-          ].map((text, i) => (
+            "カードをめくってペアを見つける",
+            "NFT・トークンが絵柄になる",
+            "Baseチェーンでスコアを記録",
+          ].map((t, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#c084fc", display: "flex" }} />
-              <span style={{ color: "rgba(255,255,255,0.45)", fontSize: 17, display: "flex" }}>
-                {text}
+              <div
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  background: "#c084fc",
+                  flexShrink: 0,
+                  display: "flex",
+                }}
+              />
+              <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 16, display: "flex" }}>
+                {t}
               </span>
             </div>
           ))}
         </div>
 
-        {/* Right: card grid */}
+        {/* ── Right: card grid 4×3 ── */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             gap: GAP,
+            paddingRight: 64,
             zIndex: 1,
-            paddingRight: 72,
           }}
         >
-          {rows.map((row, ri) => (
-            <div key={ri} style={{ display: "flex", gap: GAP }}>
-              {row.map((card, ci) => (
-                <Card key={ci} s={card.s} />
-              ))}
-            </div>
-          ))}
+          {/* Row 0: down  matched★  down  down */}
+          <div style={{ display: "flex", gap: GAP }}>
+            <CardBack />
+            <CardMatched symbol="★" />
+            <CardBack />
+            <CardBack />
+          </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 20, marginTop: 8 }}>
+          {/* Row 1: flip◆  down  down  flip◆  (two cards face-up, being compared) */}
+          <div style={{ display: "flex", gap: GAP }}>
+            <CardFlipping symbol="◆" />
+            <CardBack />
+            <CardBack />
+            <CardFlipping symbol="◆" />
+          </div>
+
+          {/* Row 2: down  down  matched★  down */}
+          <div style={{ display: "flex", gap: GAP }}>
+            <CardBack />
+            <CardBack />
+            <CardMatched symbol="★" />
+            <CardBack />
+          </div>
+
+          {/* Legend */}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 18, marginTop: 4 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 10, height: 10, background: "#c084fc", display: "flex" }} />
-              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, letterSpacing: 1, display: "flex" }}>
+              <div style={{ width: 8, height: 8, background: "#c084fc", display: "flex" }} />
+              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, letterSpacing: 2, display: "flex" }}>
                 MATCHED
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 10, height: 10, background: "#60a5fa", display: "flex" }} />
-              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 12, letterSpacing: 1, display: "flex" }}>
+              <div style={{ width: 8, height: 8, background: "#60a5fa", display: "flex" }} />
+              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, letterSpacing: 2, display: "flex" }}>
                 CHECKING
               </span>
             </div>

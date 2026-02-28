@@ -17,40 +17,27 @@ export async function GET() {
           fontFamily: "ui-monospace, Menlo, Monaco, Consolas, monospace",
         }}
       >
-        {/* Card icon */}
         <div
           style={{
-            width: 120,
-            height: 120,
+            width: 80,
+            height: 80,
             background: "rgba(0,0,0,0.15)",
-            border: "3px solid rgba(255,255,255,0.6)",
+            border: "2px solid rgba(255,255,255,0.5)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 64,
-            marginBottom: 32,
+            fontSize: 44,
+            marginBottom: 16,
             color: "#ffffff",
           }}
         >
-          ▣
+          ★
         </div>
-
-        <div
-          style={{
-            color: "#ffffff",
-            fontSize: 36,
-            fontWeight: 900,
-            letterSpacing: "-1px",
-            display: "flex",
-          }}
-        >
+        <div style={{ color: "#ffffff", fontSize: 20, fontWeight: 900, letterSpacing: 1, display: "flex" }}>
           Base Memory
         </div>
       </div>
     ),
-    {
-      width: 200,
-      height: 200,
-    }
+    { width: 200, height: 200 }
   );
 }

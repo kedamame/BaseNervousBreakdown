@@ -17,27 +17,17 @@ export async function GET() {
           overflow: "hidden",
         }}
       >
-        {/* Purple glow */}
         <div
           style={{
             position: "absolute",
             width: 400,
             height: 400,
             borderRadius: "50%",
-            background:
-              "radial-gradient(circle, rgba(192,132,252,0.25) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(192,132,252,0.25) 0%, transparent 70%)",
             display: "flex",
           }}
         />
-
-        {/* Card grid 2x2 */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {[[0, 1], [2, 3]].map((row, ri) => (
             <div key={ri} style={{ display: "flex", gap: 12 }}>
               {row.map((i) => (
@@ -46,8 +36,9 @@ export async function GET() {
                   style={{
                     width: 96,
                     height: 96,
-                    background: i === 1 || i === 2 ? "#c084fc22" : "#08080f",
+                    background: i === 1 || i === 2 ? "rgba(192,132,252,0.2)" : "#08080f",
                     border: `3px solid ${i === 1 || i === 2 ? "#c084fc" : "#2a2a3e"}`,
+                    boxShadow: i === 1 || i === 2 ? "0 0 16px rgba(192,132,252,0.5)" : "none",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -55,9 +46,9 @@ export async function GET() {
                   }}
                 >
                   {i === 1 || i === 2 ? (
-                    <span style={{ color: "#c084fc" }}>▣</span>
+                    <span style={{ color: "#c084fc", display: "flex" }}>★</span>
                   ) : (
-                    <span style={{ color: "#2a2a3e" }}>?</span>
+                    <span style={{ color: "#2a2a3e", fontSize: 20, display: "flex" }}>?</span>
                   )}
                 </div>
               ))}
@@ -66,9 +57,6 @@ export async function GET() {
         </div>
       </div>
     ),
-    {
-      width: 512,
-      height: 512,
-    }
+    { width: 512, height: 512 }
   );
 }
