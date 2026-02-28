@@ -14,20 +14,20 @@ export const metadata: Metadata = {
   openGraph: {
     title: APP_NAME,
     description: APP_DESCRIPTION,
-    images: [`${APP_URL}/og-image.png`],
+    images: [`${APP_URL}/image.png`],
   },
   other: {
     "fc:miniapp": JSON.stringify({
       version: "1",
-      imageUrl: `${APP_URL}/og-image.png`,
+      imageUrl: `${APP_URL}/image.png`,
       button: {
         title: "Play Now",
         action: {
           type: "launch_frame",
           name: "Base神経衰弱",
           url: APP_URL,
-          splashImageUrl: `${APP_URL}/og-image.png`,
-          splashBackgroundColor: "#0a0a0f",
+          splashImageUrl: `${APP_URL}/splash.png`,
+          splashBackgroundColor: "#c084fc",
         },
       },
     }),
