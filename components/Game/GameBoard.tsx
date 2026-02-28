@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef } from "react";
-import { GameCard as GameCardType, GameState } from "@/lib/types";
+import { GameState } from "@/lib/types";
 import { getGridCols, getCardSize } from "@/lib/gameLogic";
 import { Card } from "./Card";
 
@@ -11,9 +11,105 @@ interface GameBoardProps {
   onCheckMatch: () => void;
 }
 
+// How long to display both face-up cards after images are loaded
+const DISPLAY_MS = 700;
+// Maximum time to wait for images before forcing a check (safety net)
+const IMAGE_LOAD_TIMEOUT_MS = 3000;
+
 export function GameBoard({ gameState, onFlipCard, onCheckMatch }: GameBoardProps) {
-  const { cards, flippedCards, status } = gameState;
+  const { cards, flippedCards, status, stage } = gameState;
+
   const checkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Set of card IDs whose face-up images have finished loading this stage
+  const loadedCardIds = useRef<Set<string>>(new Set());
+  // The two card IDs waiting for images to load before the timer fires
+  const pendingFlippedRef = useRef<string[]>([]);
+  const pendingCheckRef = useRef(false);
+
+  // Clear loaded-image tracking when a new stage begins
+  useEffect(() => {
+    loadedCardIds.current.clear();
+    pendingFlippedRef.current = [];
+    pendingCheckRef.current = false;
+  }, [stage]);
+
+  const clearCheckTimeout = () => {
+    if (checkTimeoutRef.current) {
+      clearTimeout(checkTimeoutRef.current);
+      checkTimeoutRef.current = null;
+    }
+  };
+
+  /** Start the DISPLAY_MS display timer then fire onCheckMatch */
+  const scheduleCheck = useCallback(() => {
+    clearCheckTimeout();
+    checkTimeoutRef.current = setTimeout(() => {
+      pendingCheckRef.current = false;
+      pendingFlippedRef.current = [];
+      onCheckMatch();
+    }, DISPLAY_MS);
+  }, [onCheckMatch]);
+
+  /**
+   * Called by Card when its face-up image finishes loading.
+   * If both flipped cards are now loaded, start the display timer.
+   */
+  const handleImageLoad = useCallback(
+    (cardId: string) => {
+      loadedCardIds.current.add(cardId);
+
+      if (!pendingCheckRef.current) return;
+      const [id1, id2] = pendingFlippedRef.current;
+      if (!id1 || !id2) return;
+
+      if (
+        loadedCardIds.current.has(id1) &&
+        loadedCardIds.current.has(id2)
+      ) {
+        // Both images ready → cancel safety timeout, start display timer
+        pendingCheckRef.current = false;
+        scheduleCheck();
+      }
+    },
+    [scheduleCheck]
+  );
+
+  // When 2 cards are flipped, wait for images then start display timer
+  useEffect(() => {
+    if (flippedCards.length !== 2) {
+      if (flippedCards.length === 0) {
+        pendingCheckRef.current = false;
+        pendingFlippedRef.current = [];
+      }
+      return;
+    }
+
+    const [id1, id2] = flippedCards;
+    pendingFlippedRef.current = [id1, id2];
+
+    if (
+      loadedCardIds.current.has(id1) &&
+      loadedCardIds.current.has(id2)
+    ) {
+      // Both images already loaded (cached) → start timer immediately
+      pendingCheckRef.current = false;
+      scheduleCheck();
+    } else {
+      // At least one image is still loading → wait
+      pendingCheckRef.current = true;
+
+      // Safety net: force check after IMAGE_LOAD_TIMEOUT_MS regardless
+      clearCheckTimeout();
+      checkTimeoutRef.current = setTimeout(() => {
+        pendingCheckRef.current = false;
+        pendingFlippedRef.current = [];
+        onCheckMatch();
+      }, IMAGE_LOAD_TIMEOUT_MS);
+    }
+
+    return () => clearCheckTimeout();
+  }, [flippedCards, scheduleCheck, onCheckMatch]);
 
   const handleCardClick = useCallback(
     (cardId: string) => {
@@ -23,18 +119,6 @@ export function GameBoard({ gameState, onFlipCard, onCheckMatch }: GameBoardProp
     },
     [status, flippedCards.length, onFlipCard]
   );
-
-  // Auto-check for match when 2 cards are flipped
-  useEffect(() => {
-    if (flippedCards.length === 2) {
-      checkTimeoutRef.current = setTimeout(() => {
-        onCheckMatch();
-      }, 700);
-    }
-    return () => {
-      if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
-    };
-  }, [flippedCards.length, onCheckMatch]);
 
   const cardCount = cards.length;
   const gridCols = getGridCols(cardCount);
@@ -54,6 +138,7 @@ export function GameBoard({ gameState, onFlipCard, onCheckMatch }: GameBoardProp
             size={cardSize}
             onClick={handleCardClick}
             disabled={isDisabled && card.state === "hidden"}
+            onImageLoad={handleImageLoad}
           />
         ))}
       </div>
