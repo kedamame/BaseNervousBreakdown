@@ -20,8 +20,9 @@ export async function GET() {
 
   try {
     const keyParam = BASESCAN_API_KEY ? `&apikey=${BASESCAN_API_KEY}` : "";
+    // Etherscan API V2 — chain ID 8453 = Base mainnet
     const url =
-      `https://api.basescan.org/api?module=logs&action=getLogs` +
+      `https://api.etherscan.io/v2/api?chainid=8453&module=logs&action=getLogs` +
       `&address=${CONTRACT_ADDRESS}` +
       `&topic0=${GAME_COMPLETED_TOPIC0}` +
       `&fromBlock=${DEPLOY_BLOCK}` +
