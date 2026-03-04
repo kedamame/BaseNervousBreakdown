@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
+export const revalidate = 86400; // Cache for 24h — image is fully static
 
 // Card face-down back design
 function CardBack() {
@@ -146,6 +147,7 @@ export async function GET() {
             flexDirection: "column",
             alignItems: "flex-start",
             paddingLeft: 64,
+            paddingRight: 32,
             zIndex: 1,
           }}
         >
@@ -155,7 +157,7 @@ export async function GET() {
               display: "flex",
               border: "1px solid rgba(192,132,252,0.4)",
               padding: "4px 14px",
-              marginBottom: 24,
+              marginBottom: 28,
             }}
           >
             <span style={{ color: "#c084fc", fontSize: 13, letterSpacing: 3, display: "flex" }}>
@@ -163,41 +165,39 @@ export async function GET() {
             </span>
           </div>
 
-          {/* JP title — the star of the show */}
+          {/* Title — two lines */}
           <div
             style={{
               color: "#ffffff",
-              fontSize: 86,
+              fontSize: 72,
               fontWeight: 900,
-              letterSpacing: "-4px",
+              letterSpacing: "-2px",
               lineHeight: 1,
-              marginBottom: 12,
               display: "flex",
             }}
           >
-            神経衰弱
+            BASE
           </div>
-
-          {/* EN subtitle */}
           <div
             style={{
               color: "#c084fc",
-              fontSize: 28,
-              fontWeight: 700,
-              letterSpacing: "4px",
-              marginBottom: 40,
+              fontSize: 52,
+              fontWeight: 900,
+              letterSpacing: "2px",
+              lineHeight: 1,
+              marginBottom: 36,
               display: "flex",
             }}
           >
-            Base Memory
+            NERVOUS BREAKDOWN
           </div>
 
           {/* Gameplay bullets */}
           {[
-            "カードをめくってペアを見つける",
-            "NFT・トークンが絵柄になる",
-            "Baseチェーンでスコアを記録",
-          ].map((t, i) => (
+            "Flip cards to find matching pairs",
+            "Your NFTs & tokens become the cards",
+            "Scores recorded on Base chain",
+          ].map((text, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
               <div
                 style={{
@@ -210,7 +210,7 @@ export async function GET() {
                 }}
               />
               <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 16, display: "flex" }}>
-                {t}
+                {text}
               </span>
             </div>
           ))}
