@@ -27,7 +27,7 @@ export function useLeaderboard() {
     setError(null);
 
     try {
-      const res = await fetch("/api/leaderboard");
+      const res = await fetch("/api/leaderboard", { cache: "no-store" });
       const data = await res.json() as { entries?: LeaderboardEntry[]; error?: string };
 
       if (!res.ok) {
