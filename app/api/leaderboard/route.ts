@@ -37,12 +37,17 @@ export async function GET() {
 
     const json = await res.json();
 
-    // status "0" with "No records found" is a valid empty result
+    // Etherscan V2: "No records found" may appear in message OR result
     if (json.status !== "1") {
-      if (json.message === "No records found") {
+      const resultStr = typeof json.result === "string" ? json.result : "";
+      const isEmpty =
+        json.message === "No records found" ||
+        resultStr.toLowerCase().includes("no records found");
+      if (isEmpty) {
         return NextResponse.json({ entries: [] });
       }
-      throw new Error(json.message ?? "Basescan API error");
+      // Show the actual error detail from result if available
+      throw new Error(resultStr || json.message || "Etherscan API error");
     }
 
     type BasescanLog = { topics: string[]; data: string };
