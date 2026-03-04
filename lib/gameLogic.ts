@@ -50,7 +50,9 @@ export function createDeck(
 ): GameCard[] {
   const heartCount = Math.floor(totalCards / 8);
   const regularCount = pairsNeeded - heartCount;
-  const selected = images.slice(0, regularCount);
+  // Shuffle pool before selecting so each stage uses a different random set of images,
+  // preventing the same images from appearing in every stage when the wallet has few assets.
+  const selected = shuffle(images).slice(0, regularCount);
   const cards: GameCard[] = [];
 
   // Regular pairs
