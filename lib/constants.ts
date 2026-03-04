@@ -50,6 +50,7 @@ export const MEMORY_GAME_ABI = [
       { indexed: true, internalType: "address", name: "player", type: "address" },
       { indexed: false, internalType: "uint32", name: "stage", type: "uint32" },
       { indexed: false, internalType: "uint32", name: "moves", type: "uint32" },
+      { indexed: false, internalType: "uint64", name: "timestamp", type: "uint64" },
     ],
     name: "GameCompleted",
     type: "event",

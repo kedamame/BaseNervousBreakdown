@@ -10,10 +10,10 @@ export const revalidate = 60;
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-// topic0 = keccak256("GameCompleted(address,uint32,uint32)")
-// Pass as flat topics array — some RPCs reject viem's nested [[topic0]] format
+// topic0 = keccak256("GameCompleted(address,uint32,uint32,uint64)")
+// Contract emits: player (indexed), stage, moves, timestamp — 4 params total
 const GAME_COMPLETED_TOPIC0 = keccak256(
-  toHex("GameCompleted(address,uint32,uint32)")
+  toHex("GameCompleted(address,uint32,uint32,uint64)")
 ) as `0x${string}`;
 
 const DEPLOY_BLOCK = BigInt(process.env.CONTRACT_DEPLOY_BLOCK ?? 0);
