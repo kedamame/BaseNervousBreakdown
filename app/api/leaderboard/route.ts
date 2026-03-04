@@ -17,18 +17,18 @@ const GAME_COMPLETED_TOPIC0 = keccak256(
 ) as `0x${string}`;
 
 const DEPLOY_BLOCK = BigInt(process.env.CONTRACT_DEPLOY_BLOCK ?? 0);
-const CHUNK_SIZE = BigInt(10_000);
-const PARALLEL_BATCH = 8;
+const CHUNK_SIZE = BigInt(50_000);  // BlastAPI supports large ranges
+const PARALLEL_BATCH = 4;
 
 export async function GET() {
   if (CONTRACT_ADDRESS === ZERO_ADDRESS) {
     return NextResponse.json({ entries: [] });
   }
 
-  // Ankr public Base RPC — free, no API key required
+  // BlastAPI public Base RPC — free, no API key, supports large block ranges
   const client = createPublicClient({
     chain: base,
-    transport: http("https://rpc.ankr.com/base", { timeout: 20_000 }),
+    transport: http("https://base-mainnet.public.blastapi.io", { timeout: 20_000 }),
   });
 
   try {
