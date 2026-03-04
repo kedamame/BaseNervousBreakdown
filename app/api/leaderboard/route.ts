@@ -1,81 +1,85 @@
 import { NextResponse } from "next/server";
-import { keccak256, toHex } from "viem";
+import { createPublicClient, http, parseAbiItem } from "viem";
+import { base } from "viem/chains";
 import { CONTRACT_ADDRESS } from "@/lib/constants";
 
-// Cache the response for 60 seconds (ISR-style) to avoid hammering Basescan
+// Edge runtime: 25s timeout (vs 10s for serverless on Hobby plan)
+export const runtime = "edge";
+// Cache response for 60 seconds to reduce RPC load
 export const revalidate = 60;
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-// topic0 = keccak256("GameCompleted(address,uint32,uint32)")
-const GAME_COMPLETED_TOPIC0 = keccak256(toHex("GameCompleted(address,uint32,uint32)"));
+const GAME_COMPLETED_EVENT = parseAbiItem(
+  "event GameCompleted(address indexed player, uint32 stage, uint32 moves)"
+);
 
-const DEPLOY_BLOCK = process.env.CONTRACT_DEPLOY_BLOCK ?? "0";
-const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY ?? "";
+const DEPLOY_BLOCK = BigInt(process.env.CONTRACT_DEPLOY_BLOCK ?? 0);
+// Ankr public RPC allows up to ~10 000 blocks per eth_getLogs request
+const CHUNK_SIZE = BigInt(10_000);
+const PARALLEL_BATCH = 8;
 
 export async function GET() {
   if (CONTRACT_ADDRESS === ZERO_ADDRESS) {
     return NextResponse.json({ entries: [] });
   }
 
+  // Ankr public Base RPC — free, no API key, generous block-range limits
+  const client = createPublicClient({
+    chain: base,
+    transport: http("https://rpc.ankr.com/base", { timeout: 20_000 }),
+  });
+
   try {
-    const keyParam = BASESCAN_API_KEY ? `&apikey=${BASESCAN_API_KEY}` : "";
-    // Etherscan API V2 — chain ID 8453 = Base mainnet
-    const url =
-      `https://api.etherscan.io/v2/api?chainid=8453&module=logs&action=getLogs` +
-      `&address=${CONTRACT_ADDRESS}` +
-      `&topic0=${GAME_COMPLETED_TOPIC0}` +
-      `&fromBlock=${DEPLOY_BLOCK}` +
-      `&toBlock=latest` +
-      `&page=1&offset=1000` +
-      keyParam;
+    const latestBlock = await client.getBlockNumber();
+    const fromBlock = DEPLOY_BLOCK;
+    if (fromBlock > latestBlock) return NextResponse.json({ entries: [] });
 
-    const res = await fetch(url, {
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) throw new Error(`Basescan HTTP ${res.status}`);
+    const totalBlocks = latestBlock - fromBlock + BigInt(1);
+    const numChunks = Number(
+      (totalBlocks + CHUNK_SIZE - BigInt(1)) / CHUNK_SIZE
+    );
 
-    const json = await res.json();
-
-    // Etherscan V2: "No records found" may appear in message OR result
-    if (json.status !== "1") {
-      const resultStr = typeof json.result === "string" ? json.result : "";
-      const isEmpty =
-        json.message === "No records found" ||
-        resultStr.toLowerCase().includes("no records found");
-      if (isEmpty) {
-        return NextResponse.json({ entries: [] });
-      }
-      // Show the actual error detail from result if available
-      throw new Error(resultStr || json.message || "Etherscan API error");
+    const allLogs: Awaited<ReturnType<typeof client.getLogs>> = [];
+    for (let i = 0; i < numChunks; i += PARALLEL_BATCH) {
+      const batchSize = Math.min(PARALLEL_BATCH, numChunks - i);
+      const promises = Array.from({ length: batchSize }, (_, j) => {
+        const start = fromBlock + BigInt(i + j) * CHUNK_SIZE;
+        const end =
+          start + CHUNK_SIZE - BigInt(1) > latestBlock
+            ? latestBlock
+            : start + CHUNK_SIZE - BigInt(1);
+        return client.getLogs({
+          address: CONTRACT_ADDRESS,
+          event: GAME_COMPLETED_EVENT,
+          fromBlock: start,
+          toBlock: end,
+        });
+      });
+      const results = await Promise.all(promises);
+      allLogs.push(...results.flat());
     }
 
-    type BasescanLog = { topics: string[]; data: string };
-    const logs: BasescanLog[] = Array.isArray(json.result) ? json.result : [];
+    type GameArgs = { player?: `0x${string}`; stage?: bigint; moves?: bigint };
+    const bestByPlayer = new Map<
+      string,
+      { address: string; stage: number; moves: number }
+    >();
 
-    // Aggregate: best score per player (highest stage, fewest moves as tiebreaker)
-    const bestByPlayer = new Map<string, { address: string; stage: number; moves: number }>();
-
-    for (const log of logs) {
-      if (!log.topics || log.topics.length < 2) continue;
-
-      // player is indexed → topics[1], left-padded to 32 bytes
-      const player = `0x${log.topics[1].slice(-40)}` as `0x${string}`;
-
-      // data = abi.encode(uint32 stage, uint32 moves) → 32 bytes each
-      const data = log.data.startsWith("0x") ? log.data.slice(2) : log.data;
-      const stage = parseInt(data.slice(0, 64), 16);
-      const moves = parseInt(data.slice(64, 128), 16);
-
-      if (!player || isNaN(stage) || isNaN(moves)) continue;
-
+    for (const log of allLogs) {
+      const { player, stage, moves } = (
+        (log as unknown as { args?: GameArgs }).args ?? {}
+      );
+      if (!player || stage === undefined || moves === undefined) continue;
+      const s = Number(stage);
+      const m = Number(moves);
       const existing = bestByPlayer.get(player);
       if (
         !existing ||
-        stage > existing.stage ||
-        (stage === existing.stage && moves < existing.moves)
+        s > existing.stage ||
+        (s === existing.stage && m < existing.moves)
       ) {
-        bestByPlayer.set(player, { address: player, stage, moves });
+        bestByPlayer.set(player, { address: player, stage: s, moves: m });
       }
     }
 
@@ -85,9 +89,11 @@ export async function GET() {
 
     return NextResponse.json({ entries });
   } catch (err) {
-    console.error("[/api/leaderboard] Basescan fetch failed:", err);
+    console.error("[/api/leaderboard] getLogs failed:", err);
     const msg =
-      err instanceof Error ? err.message.split("\n")[0] : "Failed to fetch leaderboard";
+      err instanceof Error
+        ? err.message.split("\n")[0]
+        : "Failed to fetch leaderboard";
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
