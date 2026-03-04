@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createPublicClient, http, parseAbiItem } from "viem";
+import { createPublicClient, http, keccak256, toHex } from "viem";
 import { base } from "viem/chains";
 import { CONTRACT_ADDRESS } from "@/lib/constants";
 
@@ -10,12 +10,13 @@ export const revalidate = 60;
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-const GAME_COMPLETED_EVENT = parseAbiItem(
-  "event GameCompleted(address indexed player, uint32 stage, uint32 moves)"
-);
+// topic0 = keccak256("GameCompleted(address,uint32,uint32)")
+// Pass as flat topics array — some RPCs reject viem's nested [[topic0]] format
+const GAME_COMPLETED_TOPIC0 = keccak256(
+  toHex("GameCompleted(address,uint32,uint32)")
+) as `0x${string}`;
 
 const DEPLOY_BLOCK = BigInt(process.env.CONTRACT_DEPLOY_BLOCK ?? 0);
-// Ankr public RPC allows up to ~10 000 blocks per eth_getLogs request
 const CHUNK_SIZE = BigInt(10_000);
 const PARALLEL_BATCH = 8;
 
@@ -24,7 +25,7 @@ export async function GET() {
     return NextResponse.json({ entries: [] });
   }
 
-  // Ankr public Base RPC — free, no API key, generous block-range limits
+  // Ankr public Base RPC — free, no API key required
   const client = createPublicClient({
     chain: base,
     transport: http("https://rpc.ankr.com/base", { timeout: 20_000 }),
@@ -40,7 +41,9 @@ export async function GET() {
       (totalBlocks + CHUNK_SIZE - BigInt(1)) / CHUNK_SIZE
     );
 
-    const allLogs: Awaited<ReturnType<typeof client.getLogs>> = [];
+    type RawLog = { topics: readonly `0x${string}`[]; data: `0x${string}` };
+    const allLogs: RawLog[] = [];
+
     for (let i = 0; i < numChunks; i += PARALLEL_BATCH) {
       const batchSize = Math.min(PARALLEL_BATCH, numChunks - i);
       const promises = Array.from({ length: batchSize }, (_, j) => {
@@ -49,37 +52,46 @@ export async function GET() {
           start + CHUNK_SIZE - BigInt(1) > latestBlock
             ? latestBlock
             : start + CHUNK_SIZE - BigInt(1);
-        return client.getLogs({
-          address: CONTRACT_ADDRESS,
-          event: GAME_COMPLETED_EVENT,
-          fromBlock: start,
-          toBlock: end,
+        // Use raw request to pass flat topics array.
+        // viem's typed getLogs wraps topics in [[topic]] which some RPCs reject.
+        return client.request({
+          method: "eth_getLogs",
+          params: [
+            {
+              address: CONTRACT_ADDRESS,
+              topics: [GAME_COMPLETED_TOPIC0],
+              fromBlock: `0x${start.toString(16)}`,
+              toBlock: `0x${end.toString(16)}`,
+            },
+          ],
         });
       });
       const results = await Promise.all(promises);
       allLogs.push(...results.flat());
     }
 
-    type GameArgs = { player?: `0x${string}`; stage?: bigint; moves?: bigint };
     const bestByPlayer = new Map<
       string,
       { address: string; stage: number; moves: number }
     >();
 
     for (const log of allLogs) {
-      const { player, stage, moves } = (
-        (log as unknown as { args?: GameArgs }).args ?? {}
-      );
-      if (!player || stage === undefined || moves === undefined) continue;
-      const s = Number(stage);
-      const m = Number(moves);
+      if (!log.topics || log.topics.length < 2) continue;
+      // player is indexed → topics[1], left-padded to 32 bytes
+      const player = `0x${log.topics[1].slice(-40)}` as `0x${string}`;
+      // data = abi.encode(uint32 stage, uint32 moves) → 32 bytes each
+      const data = log.data.startsWith("0x") ? log.data.slice(2) : log.data;
+      const stage = parseInt(data.slice(0, 64), 16);
+      const moves = parseInt(data.slice(64, 128), 16);
+      if (!player || isNaN(stage) || isNaN(moves)) continue;
+
       const existing = bestByPlayer.get(player);
       if (
         !existing ||
-        s > existing.stage ||
-        (s === existing.stage && m < existing.moves)
+        stage > existing.stage ||
+        (stage === existing.stage && moves < existing.moves)
       ) {
-        bestByPlayer.set(player, { address: player, stage: s, moves: m });
+        bestByPlayer.set(player, { address: player, stage, moves });
       }
     }
 
