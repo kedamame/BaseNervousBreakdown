@@ -52,6 +52,13 @@ export function Leaderboard({ onBack }: LeaderboardProps) {
         </button>
       </div>
 
+      {/* Cache note */}
+      <div className="px-4 py-1.5 border-b border-white/5 text-center">
+        <span className="text-white/25 text-[10px] uppercase tracking-widest">
+          {t.leaderboard.cacheNote}
+        </span>
+      </div>
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {isLoading ? (

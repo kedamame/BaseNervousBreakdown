@@ -67,6 +67,7 @@ const en = {
     back: "Back",
     view: "Leaderboard",
     myScore: "You",
+    cacheNote: "Updates may take up to 1 minute to reflect.",
   },
   stageComplete: {
     cleared: (n: number) => `Stage ${n} Clear!`,
@@ -149,6 +150,7 @@ const ja: typeof en = {
     back: "戻る",
     view: "ランキング",
     myScore: "あなた",
+    cacheNote: "反映までに最大1分かかる場合があります。",
   },
   stageComplete: {
     cleared: (n: number) => `Stage ${n} クリア！`,
