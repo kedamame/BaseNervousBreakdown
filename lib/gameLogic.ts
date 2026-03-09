@@ -40,6 +40,23 @@ export const HEART_IMAGE: AssetImage = {
 };
 
 /**
+ * Deduplicates NFTs so at most one image per contract address is included.
+ * A random token from each contract is kept (via pre-shuffle).
+ * Non-NFT images (tokens, demo, heart) are unaffected.
+ */
+function deduplicateByContract(images: AssetImage[]): AssetImage[] {
+  const seen = new Set<string>();
+  // Input should already be shuffled so the "first seen" per contract is random.
+  return images.filter((img) => {
+    if (img.type === "nft" && img.contractAddress) {
+      if (seen.has(img.contractAddress)) return false;
+      seen.add(img.contractAddress);
+    }
+    return true;
+  });
+}
+
+/**
  * Creates a shuffled deck of GameCards.
  * Injects 1 heart pair per 8 cards (floor(totalCards / 8)).
  */
@@ -50,9 +67,9 @@ export function createDeck(
 ): GameCard[] {
   const heartCount = Math.floor(totalCards / 8);
   const regularCount = pairsNeeded - heartCount;
-  // Shuffle pool before selecting so each stage uses a different random set of images,
-  // preventing the same images from appearing in every stage when the wallet has few assets.
-  const selected = shuffle(images).slice(0, regularCount);
+  // Shuffle first so deduplication picks a random NFT per contract,
+  // then deduplicate by contract, then shuffle again for final ordering.
+  const selected = shuffle(deduplicateByContract(shuffle(images))).slice(0, regularCount);
   const cards: GameCard[] = [];
 
   // Regular pairs
