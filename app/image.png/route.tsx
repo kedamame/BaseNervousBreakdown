@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const revalidate = 86400; // Cache for 24h — image is fully static
+export const revalidate = 3600; // Cache for 1h
 
 // Card face-down back design
 function CardBack() {
