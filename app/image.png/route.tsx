@@ -1,15 +1,15 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const revalidate = 3600; // Cache for 1h
+export const revalidate = 0; // No cache — always fresh
 
 // Card face-down back design
 function CardBack() {
   return (
     <div
       style={{
-        width: 100,
-        height: 120,
+        width: 85,
+        height: 105,
         background: "#0c0c1a",
         border: "2px solid #252540",
         display: "flex",
@@ -18,15 +18,15 @@ function CardBack() {
         flexShrink: 0,
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 7, opacity: 0.28 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, opacity: 0.28 }}>
         {[0, 1, 2].map((r) => (
-          <div key={r} style={{ display: "flex", gap: 7 }}>
+          <div key={r} style={{ display: "flex", gap: 6 }}>
             {[0, 1, 2].map((c) => (
               <div
                 key={c}
                 style={{
-                  width: 7,
-                  height: 7,
+                  width: 6,
+                  height: 6,
                   borderRadius: "50%",
                   background: "#9090c0",
                   display: "flex",
@@ -45,11 +45,11 @@ function CardMatched({ symbol }: { symbol: string }) {
   return (
     <div
       style={{
-        width: 100,
-        height: 120,
+        width: 85,
+        height: 105,
         background: "rgba(192,132,252,0.18)",
         border: "2.5px solid #c084fc",
-        boxShadow: "0 0 22px rgba(192,132,252,0.55)",
+        boxShadow: "0 0 18px rgba(192,132,252,0.55)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -58,22 +58,21 @@ function CardMatched({ symbol }: { symbol: string }) {
         position: "relative",
       }}
     >
-      <span style={{ fontSize: 42, color: "#c084fc", display: "flex" }}>{symbol}</span>
-      <span style={{ fontSize: 10, color: "#c084fc", letterSpacing: 2, marginTop: 4, display: "flex" }}>
+      <span style={{ fontSize: 36, color: "#c084fc", display: "flex" }}>{symbol}</span>
+      <span style={{ fontSize: 9, color: "#c084fc", letterSpacing: 2, marginTop: 4, display: "flex" }}>
         MATCH
       </span>
-      {/* checkmark badge */}
       <div
         style={{
           position: "absolute",
-          top: -10,
-          right: -10,
-          width: 22,
-          height: 22,
+          top: -9,
+          right: -9,
+          width: 20,
+          height: 20,
           borderRadius: "50%",
           background: "#c084fc",
           color: "#fff",
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: 900,
           display: "flex",
           alignItems: "center",
@@ -91,8 +90,8 @@ function CardFlipping({ symbol }: { symbol: string }) {
   return (
     <div
       style={{
-        width: 100,
-        height: 120,
+        width: 85,
+        height: 105,
         background: "rgba(96,165,250,0.1)",
         border: "2px solid #60a5fa",
         display: "flex",
@@ -102,8 +101,8 @@ function CardFlipping({ symbol }: { symbol: string }) {
         flexShrink: 0,
       }}
     >
-      <span style={{ fontSize: 42, color: "#60a5fa", display: "flex" }}>{symbol}</span>
-      <span style={{ fontSize: 10, color: "#60a5fa60", letterSpacing: 2, marginTop: 4, display: "flex" }}>
+      <span style={{ fontSize: 36, color: "#60a5fa", display: "flex" }}>{symbol}</span>
+      <span style={{ fontSize: 9, color: "#60a5fa60", letterSpacing: 2, marginTop: 4, display: "flex" }}>
         ?
       </span>
     </div>
@@ -139,14 +138,14 @@ export async function GET() {
           }}
         />
 
-        {/* ── Left: title text ── */}
+        {/* ── Left: title text — paddingLeft 160 keeps content in safe zone ── */}
         <div
           style={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
             alignItems: "flex-start",
-            paddingLeft: 64,
+            paddingLeft: 160,
             paddingRight: 32,
             zIndex: 1,
           }}
@@ -165,7 +164,7 @@ export async function GET() {
             </span>
           </div>
 
-          {/* Title — two lines */}
+          {/* Title */}
           <div
             style={{
               color: "#ffffff",
@@ -181,7 +180,7 @@ export async function GET() {
           <div
             style={{
               color: "#c084fc",
-              fontSize: 52,
+              fontSize: 48,
               fontWeight: 900,
               letterSpacing: "2px",
               lineHeight: 1,
@@ -216,17 +215,17 @@ export async function GET() {
           ))}
         </div>
 
-        {/* ── Right: card grid 4×3 ── */}
+        {/* ── Right: card grid 4×3 — paddingRight 140 keeps cards in safe zone ── */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             gap: GAP,
-            paddingRight: 64,
+            paddingRight: 140,
             zIndex: 1,
           }}
         >
-          {/* Row 0: down  matched★  down  down */}
+          {/* Row 0 */}
           <div style={{ display: "flex", gap: GAP }}>
             <CardBack />
             <CardMatched symbol="★" />
@@ -234,7 +233,7 @@ export async function GET() {
             <CardBack />
           </div>
 
-          {/* Row 1: flip◆  down  down  flip◆  (two cards face-up, being compared) */}
+          {/* Row 1 */}
           <div style={{ display: "flex", gap: GAP }}>
             <CardFlipping symbol="◆" />
             <CardBack />
@@ -242,7 +241,7 @@ export async function GET() {
             <CardFlipping symbol="◆" />
           </div>
 
-          {/* Row 2: down  down  matched★  down */}
+          {/* Row 2 */}
           <div style={{ display: "flex", gap: GAP }}>
             <CardBack />
             <CardBack />
@@ -253,14 +252,14 @@ export async function GET() {
           {/* Legend */}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 18, marginTop: 4 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 8, height: 8, background: "#c084fc", display: "flex" }} />
-              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, letterSpacing: 2, display: "flex" }}>
+              <div style={{ width: 7, height: 7, background: "#c084fc", display: "flex" }} />
+              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, letterSpacing: 2, display: "flex" }}>
                 MATCHED
               </span>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 8, height: 8, background: "#60a5fa", display: "flex" }} />
-              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, letterSpacing: 2, display: "flex" }}>
+              <div style={{ width: 7, height: 7, background: "#60a5fa", display: "flex" }} />
+              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, letterSpacing: 2, display: "flex" }}>
                 CHECKING
               </span>
             </div>

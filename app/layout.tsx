@@ -15,12 +15,12 @@ export const metadata: Metadata = {
   openGraph: {
     title: APP_NAME,
     description: APP_DESCRIPTION,
-    images: [`${APP_URL}/image.png`],
+    images: [`${APP_URL}/image.png?v=2`],
   },
   other: {
     "fc:miniapp": JSON.stringify({
       version: "1",
-      imageUrl: `${APP_URL}/image.png`,
+      imageUrl: `${APP_URL}/image.png?v=2`,
       button: {
         title: "Play Now",
         action: {
