@@ -101,12 +101,16 @@ export function useScore() {
         const isFarcaster = connector?.type === "farcasterMiniApp";
         const isInjected = connector?.type === "injected";
 
-        if (!isFarcaster) {
+        // Detect stub connector (no methods) — happens after page reload when wagmi
+        // restores a serialised connector before the real implementation is loaded.
+        const connectorReady = connector && typeof connector.getChainId === "function";
+
+        if (!isFarcaster && connectorReady) {
           // Re-query the actual chain directly from the connector rather than relying on
           // wagmi's cached useChainId() value, which can lag behind the real wallet state
           // (especially with EIP-6963 wallets like Rabby on first connect).
           let actualChainId = chainId;
-          try { actualChainId = await connector!.getChainId(); } catch { /* use cached */ }
+          try { actualChainId = await connector.getChainId(); } catch { /* use cached */ }
 
           if (actualChainId !== base.id) {
             setStatus("switching_chain");
@@ -115,7 +119,7 @@ export function useScore() {
             // belong to a different installed wallet extension).
             const getConnectorProvider = isInjected
               ? async (): Promise<EthProvider | null> => {
-                  try { return (await connector!.getProvider()) as EthProvider; } catch { return null; }
+                  try { return (await connector.getProvider()) as EthProvider; } catch { return null; }
                 }
               : null;
             await switchToBase(() => switchChainAsync({ chainId: base.id }), getConnectorProvider);
@@ -139,6 +143,7 @@ export function useScore() {
           abi: MEMORY_GAME_ABI,
           functionName: "recordGame",
           args: [stage, moves],
+          chainId: base.id, // Explicit chainId avoids internal connector.getChainId() call
         });
 
         setStatus("confirming");
