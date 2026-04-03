@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useWriteContract, usePublicClient, useChainId, useAccount, useSwitchChain } from "wagmi";
+import { useWriteContract, usePublicClient, useChainId, useAccount, useSwitchChain, useConnect, useConnectors } from "wagmi";
 import { base } from "wagmi/chains";
 import { MEMORY_GAME_ABI, CONTRACT_ADDRESS } from "@/lib/constants";
 import type { BaseError } from "viem";
@@ -85,6 +85,8 @@ export function useScore() {
   const chainId = useChainId();
   const { address, connector } = useAccount();
   const { switchChainAsync } = useSwitchChain();
+  const { connectAsync } = useConnect();
+  const allConnectors = useConnectors();
 
   const recordScore = useCallback(
     async (stage: number, moves: number): Promise<boolean> => {
@@ -103,23 +105,27 @@ export function useScore() {
 
         // Detect stub connector (no methods) — happens after page reload when wagmi
         // restores a serialised connector before the real implementation is loaded.
-        const connectorReady = connector && typeof connector.getChainId === "function";
+        // writeContractAsync will call connector.getChainId() internally, so we must
+        // reconnect with the real connector before attempting the TX.
+        const isStub = connector && typeof connector.getChainId !== "function";
+        if (isStub) {
+          const realConnector = allConnectors.find(c => c.type === connector.type && typeof c.getChainId === "function");
+          if (realConnector) {
+            await connectAsync({ connector: realConnector });
+            // Allow wagmi state to settle after reconnect
+            await new Promise(r => setTimeout(r, 200));
+          }
+        }
 
-        if (!isFarcaster && connectorReady) {
-          // Re-query the actual chain directly from the connector rather than relying on
-          // wagmi's cached useChainId() value, which can lag behind the real wallet state
-          // (especially with EIP-6963 wallets like Rabby on first connect).
+        if (!isFarcaster && !isStub) {
           let actualChainId = chainId;
-          try { actualChainId = await connector.getChainId(); } catch { /* use cached */ }
+          try { actualChainId = await connector!.getChainId(); } catch { /* use cached */ }
 
           if (actualChainId !== base.id) {
             setStatus("switching_chain");
-            // For injected connectors: pass a getProvider function so the fallback uses
-            // the connector's own EIP-6963 provider instead of window.ethereum (which may
-            // belong to a different installed wallet extension).
             const getConnectorProvider = isInjected
               ? async (): Promise<EthProvider | null> => {
-                  try { return (await connector.getProvider()) as EthProvider; } catch { return null; }
+                  try { return (await connector!.getProvider()) as EthProvider; } catch { return null; }
                 }
               : null;
             await switchToBase(() => switchChainAsync({ chainId: base.id }), getConnectorProvider);
@@ -143,7 +149,7 @@ export function useScore() {
           abi: MEMORY_GAME_ABI,
           functionName: "recordGame",
           args: [stage, moves],
-          chainId: base.id, // Explicit chainId avoids internal connector.getChainId() call
+          chainId: base.id,
         });
 
         setStatus("confirming");
@@ -164,7 +170,7 @@ export function useScore() {
         return false;
       }
     },
-    [writeContractAsync, publicClient, chainId, address, connector, switchChainAsync]
+    [writeContractAsync, publicClient, chainId, address, connector, switchChainAsync, connectAsync, allConnectors]
   );
 
   const reset = useCallback(() => {
