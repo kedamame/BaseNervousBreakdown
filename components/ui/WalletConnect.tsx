@@ -19,6 +19,9 @@ function getConnectorInfo(id: string, name: string, t: ReturnType<typeof useT>["
   if (id === "coinbaseWallet" || name.toLowerCase().includes("coinbase")) {
     return { label: t.walletConnect.coinbase, icon: "■" };
   }
+  if (id === "walletConnect" || name.toLowerCase().includes("walletconnect")) {
+    return { label: t.walletConnect.walletconnect, icon: "■" };
+  }
   if (id === "injected" || name.toLowerCase().includes("metamask")) {
     return { label: t.walletConnect.injected, icon: "■" };
   }

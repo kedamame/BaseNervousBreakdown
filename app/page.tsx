@@ -41,10 +41,14 @@ export default function Home() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const hasInitialized = useRef(false);
 
-  // Initialize Farcaster SDK and attempt auto-connect (Farcaster client only)
+  // Initialize Farcaster SDK and attempt auto-connect (only inside Farcaster iframe)
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
+
+    // Only run Farcaster-specific init when inside an iframe (i.e. Warpcast)
+    const isInFarcaster = typeof window !== "undefined" && window.self !== window.top;
+    if (!isInFarcaster) return;
 
     const init = async () => {
       // Auto-connect using the pre-registered Farcaster connector from wagmiConfig.
@@ -58,7 +62,7 @@ export default function Home() {
         connect({ connector: farcasterConnector });
       }
       // Signal Farcaster to hide splash screen
-      try { await sdk.actions.ready(); } catch { /* not in Farcaster */ }
+      try { await sdk.actions.ready(); } catch { /* SDK error */ }
     };
 
     init();
